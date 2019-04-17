@@ -68,6 +68,7 @@ azureRI.CallBillingApi <- function(obj, version = NULL, query=NULL, filepath=NUL
 
 source("./azureRI.getInstanceSizeFlexibility.R")
 source("./azureRI.getFriendlyServiceNames.R")
+source("./azureRI.getBillingPeriods.R")
 source("./azureRI.getReservationCharges.R")
 
 # default azureRI object

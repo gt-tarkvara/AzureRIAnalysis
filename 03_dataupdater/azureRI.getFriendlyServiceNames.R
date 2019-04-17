@@ -32,7 +32,7 @@ azureRI.getFriendlyServiceNames <- function(filepath=NULL, reload=FALSE) {
   if (file.exists(filepath)) {
      result <- read_excel(filepath)
   }
-  
+  result <- add_column(result, billingperiod = format(Sys.Date(), "%Y%m"))
   if (removeAfterLoad) {
     file.remove(filepath)
   }
