@@ -16,6 +16,8 @@ azureRI.getInstanceSizeFlexibility <- function() {
   tables <- results[1] %>% html_nodes("table") %>% html_table()
   
   flexibleTables <- do.call("rbind", tables)
+  flexibleTables <- as_tibble(flexibleTables)
+  flexibleTables <- add_column(flexibleTables, billingperiod = format(Sys.Date(), "%Y%m"))
   
   return(flexibleTables)
 }
