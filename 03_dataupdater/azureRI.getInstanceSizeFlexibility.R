@@ -1,4 +1,4 @@
-library(rvest)
+if(!exists("azureRI", mode="function")) source("azureRI.R")
 
 
 azureRI.getInstanceSizeFlexibility <- function() {

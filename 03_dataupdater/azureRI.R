@@ -1,4 +1,8 @@
 library(GetoptLong)
+library(curl)
+library(tidyverse)
+library(jsonlite)
+library(rvest)
 
 azureRI <- function(enrollmentno, bearer) {
   value <- list(enrollmentNumber = enrollmentno, bearer = bearer)
@@ -62,7 +66,15 @@ azureRI.CallBillingApi <- function(obj, version = NULL, query=NULL, filepath=NUL
   
 }
 
+source("./azureRI.getInstanceSizeFlexibility.R")
+source("./azureRI.getFriendlyServiceNames.R")
+source("./azureRI.getReservationCharges.R")
 
+# default azureRI object
+azureRI.default <- azureRI(Sys.getenv("AZURERI_ENROLLMENTNO"), Sys.getenv("AZURERI_BEARER"))
+
+
+if (FALSE) {
 getx <- function(con) {
   open(con, "rb", blocking=FALSE)
   data <- ""
@@ -78,4 +90,5 @@ getx <- function(con) {
   #}
   close(con)
   return(fromJSON(data))
+}
 }
