@@ -1,0 +1,7 @@
+
+
+
+
+azureRI.getReservationCharges <- function() {
+  
+}

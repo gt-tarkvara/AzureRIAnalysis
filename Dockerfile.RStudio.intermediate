@@ -1,0 +1,28 @@
+# docker build -t herrbpl/rstudio-tidyverse -f Dockerfile.RStudio.intermediate .
+# Base image https://hub.docker.com/u/rocker/
+# FROM rocker/r-base:latest
+FROM rocker/rstudio:latest
+
+## install debian packages
+RUN apt-get update -qq && apt-get -y --no-install-recommends install \
+libxml2-dev \
+libcairo2-dev \
+libsqlite3-dev \
+libmariadbd-dev \
+libpq-dev \
+libssh2-1-dev \
+unixodbc-dev \
+libcurl4-openssl-dev \
+libssl-dev 
+#default-jre-headless \
+#r-cran-rjava
+
+# default-jdk-headless
+# r-cran-rjava
+# openjdk-12-jre-headless
+
+## copy files
+COPY 02_code/install_packages.R /install_packages.R
+
+## install R-packages
+RUN Rscript /install_packages.R
