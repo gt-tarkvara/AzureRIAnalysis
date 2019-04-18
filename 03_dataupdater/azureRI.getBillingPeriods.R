@@ -11,6 +11,26 @@ azureRI.getBillingPeriods <- function(obj = NULL) {
     stop("Expected AzureRI object")
   }
   
-  result <- azureRI.CallBillingApi(obj, version = "v2", query = "billingperiods" )
-  return(fromJSON(result))
+
+  result <- azureRI.CallBillingApi(obj, version = "v2", query = "billingperiods" ) 
+  
+  if (is.na(result)) {
+    return(tibble())
+  }
+  
+  result <- tryCatch(
+    {
+      fromJSON(result)
+    },
+    error = function(cond) {
+      warning(cond, immediate. = TRUE)
+      return(tibble())
+    },
+    warning = function(cond) {
+      warning(cond, immediate. = TRUE)
+      return(tibble())
+    }
+  )
+  
+  return(result)
 }

@@ -14,5 +14,24 @@ azureRI.getReservationCharges <- function(obj = NULL, startdate = Sys.Date() - 3
   query <- paste0("reservationcharges?startDate=", startdate ,"&endDate=", enddate)
   
   result <- azureRI.CallBillingApi(obj, version = "v3", query = query )
-  return(fromJSON(result))
+  
+  if (is.na(result)) {
+    return(tibble())
+  }
+  
+  result <- tryCatch(
+    {
+      fromJSON(result)
+    },
+    error = function(cond) {
+      warning(cond, immediate. = TRUE)
+      return(tibble())
+    },
+    warning = function(cond) {
+      warning(cond, immediate. = TRUE)
+      return(tibble())
+    }
+  )
+  
+  return(result)
 }
