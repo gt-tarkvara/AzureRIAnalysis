@@ -11,6 +11,9 @@ azureRI.getBillingPeriods <- function(obj = NULL) {
     stop("Expected AzureRI object")
   }
   
+  if (!is.null(obj$billingPeriods)) {
+    return(obj$billingPeriods)
+  }
 
   result <- azureRI.CallBillingApi(obj, version = "v2", query = "billingperiods" ) 
   
