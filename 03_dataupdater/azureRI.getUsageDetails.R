@@ -38,22 +38,38 @@ azureRI.getUsageDetails <- function(obj = NULL, billingPeriod = NULL) {
   
   result <- read_delim(file= filepath, ",", locale = locale(decimal_mark = ".", grouping_mark = ""), skip = 1 )
   
+  jsonColumns <- ParseJSONColumn(result$AdditionalInfo)
+  
+  result <- cbind(result, jsonColumns)
+  
   return(result)
 }
 
 
 PrepareForJSON <- function(x) {
-  if (is.list(x)) {
-    lapply(x, function(xx) { print(xx); if (startsWith(xx, "{")) { xx } else { paste0("{ ", xx, "}")}}) 
+  if (is.list(x) || is.vector(x)) {
+    
+    as.vector(sapply(s0, 
+        function(xx) {
+          if (xx == "{}") { "null" } 
+          else {
+            if (startsWith(xx, "{")) { xx } 
+            else { paste0("{ \"Misc\":\"", xx, "\"}")}
+          }
+        }, USE.NAMES = F))  
   } else {
-    if (startsWith(x, "{")) { x } else { paste0("{ '", x, "'}")}
+    if (x == "{}") { "null" } 
+    else {
+      if (startsWith(x, "{")) { x } 
+      else { paste0("{ \"Misc\":\"", x, "\"}")}
+    }
   }
 }
 
 
 ParseJSONColumn <- function(x)  {
   
-  str_c("[ ", str_c( PrepareForJSON( str_replace_na(x, replacement = "null")), collapse = ",", sep=" "), " ]")  %>% 
+  str_c("[ ", str_c( PrepareForJSON( str_replace_na(x, replacement = "{}")), collapse = ",", sep=" "), " ]")  %>% 
     fromJSON(flatten = T) %>% 
     as_tibble()
 }
