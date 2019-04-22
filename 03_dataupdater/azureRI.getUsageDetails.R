@@ -1,6 +1,6 @@
 if(!exists("azureRI", mode="function")) source("azureRI.R")
 
-azureRI.getUsageDetails <- function(obj = NULL, billingPeriod = NULL) {
+azureRI.getUsageDetails <- function(obj = NULL, billingPeriod = NULL, tempdir = tempdir()) {
   
   if (is.null(obj)) {
     obj <- azureRI.default
@@ -23,10 +23,13 @@ azureRI.getUsageDetails <- function(obj = NULL, billingPeriod = NULL) {
      return(tibble())
   }
   
+  if (!dir.exists(tempdir)) {
+    dir.create(tempdir, recursive = T)
+  }
   
   q <- paste0("/usagedetails/download?billingPeriod=", billingPeriod)
   
-  filepath <- paste(tempdir(), paste0("usagedetails-", billingPeriod, ".csv"), sep = .Platform$file.sep)
+  filepath <- paste(tempdir, paste0("usagedetails-", billingPeriod, ".csv"), sep = .Platform$file.sep)
   
   print(filepath)
   
@@ -40,7 +43,7 @@ azureRI.getUsageDetails <- function(obj = NULL, billingPeriod = NULL) {
   
   jsonColumns <- ParseJSONColumn(result$AdditionalInfo)
   
-  result <- cbind(result, jsonColumns)
+  result <- as_tibble(cbind(result, jsonColumns))
   
   return(result)
 }
@@ -49,7 +52,7 @@ azureRI.getUsageDetails <- function(obj = NULL, billingPeriod = NULL) {
 PrepareForJSON <- function(x) {
   if (is.list(x) || is.vector(x)) {
     
-    as.vector(sapply(s0, 
+    as.vector(sapply(x, 
         function(xx) {
           if (xx == "{}") { "null" } 
           else {
