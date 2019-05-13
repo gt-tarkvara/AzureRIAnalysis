@@ -3,6 +3,7 @@ library(curl)
 library(tidyverse)
 library(jsonlite)
 library(rvest)
+library(lubridate)
 
 azureRI <- function(enrollmentno, bearer, margin=1.0) {
   value <- list(enrollmentNumber = enrollmentno, bearer = bearer, margin=margin)

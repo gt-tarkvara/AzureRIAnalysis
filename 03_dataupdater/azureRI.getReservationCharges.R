@@ -31,7 +31,14 @@ azureRI.getReservationCharges <- function(obj = NULL, startdate = Sys.Date() - 3
       warning(cond, immediate. = TRUE)
       return(tibble())
     }
-  )
+  ) %>%
+    mutate(
+      baseHourRate = if_else(term=="P1Y",(amount/(365*24))/quantity, (amount/(3*365*24))/quantity)
+    ) %>%
+    filter(
+      eventType == "Purchase"
+    )
+  
   
   return(result)
 }

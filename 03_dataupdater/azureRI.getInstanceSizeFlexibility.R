@@ -1,6 +1,6 @@
 if(!exists("azureRI", mode="function")) source("azureRI.R")
 
-
+# TODO: add opportunity to retrieve snapshot made for specific billing period
 azureRI.getInstanceSizeFlexibility <- function() {
   url <- "https://docs.microsoft.com/en-us/azure/virtual-machines/windows/reserved-vm-instance-size-flexibility"  
 
