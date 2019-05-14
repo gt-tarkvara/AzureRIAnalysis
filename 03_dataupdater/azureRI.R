@@ -16,6 +16,7 @@ source("./azureRI.getInstanceSizeFlexibility.R")
 source("./azureRI.getFriendlyServiceNames.R")
 source("./azureRI.getBillingPeriods.R")
 source("./azureRI.getReservationCharges.R")
+source("./azureRI.getPriceList.R")
 source("./azureRI.getUsageDetails.R")
 
 # default azureRI object

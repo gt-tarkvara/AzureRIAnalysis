@@ -161,3 +161,7 @@ riHoursWithRICosts <- left_join(x = riHoursWithRICosts, y = instanceSizeFlexibil
     ) %>%
   group_by(InstanceId, Date, SubscriptionGuid, ConsumptionMeter) %>%
   summarise(RIHours=sum(ConsumedQuantity), RIRate=mean(usedRIRate), RICost=sum(RICost))
+
+# === PriceSheet
+
+
