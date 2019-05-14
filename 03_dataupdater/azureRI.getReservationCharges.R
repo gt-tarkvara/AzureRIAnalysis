@@ -19,6 +19,8 @@ azureRI.getReservationCharges <- function(obj = NULL, startdate = Sys.Date() - 3
     return(tibble())
   }
   
+  margin <- obj$margin
+  
   result <- tryCatch(
     {
       fromJSON(result)
@@ -34,6 +36,10 @@ azureRI.getReservationCharges <- function(obj = NULL, startdate = Sys.Date() - 3
   ) %>%
     mutate(
       baseHourRate = if_else(term=="P1Y",(amount/(365*24))/quantity, (amount/(3*365*24))/quantity)
+    ) %>%
+    mutate(
+      baseHourRate = baseHourRate * margin,
+      amount = amount * margin
     ) %>%
     filter(
       eventType == "Purchase"

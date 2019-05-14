@@ -60,10 +60,7 @@ usageDetails <- usageDetails %>%
     -SubscriptionId,
     -AccountId,
     -AccountOwnerEmail
-  ) %>%
-  mutate(Cost = Cost*margin)
-
-
+  ) 
 
 usageDetails <- left_join(usageDetails, friendlyServiceNames, by = c("PartNumber" = "ConsumptionPartNumber")) %>%
   mutate(
@@ -81,11 +78,7 @@ usageDetails <- left_join(usageDetails, friendlyServiceNames, by = c("PartNumber
 
 # === ReservationCharge
 # use default reservation charges
-reservationCharge <- azureRI.getReservationCharges(obj = apiObj) %>%
-  mutate(
-    baseHourRate = baseHourRate * margin,
-    amount = amount * margin
-  )
+reservationCharge <- azureRI.getReservationCharges(obj = apiObj) 
 
 # === InstanceSizeflexibility
 instanceSizeFlexibility <- azureRI.getInstanceSizeFlexibility()

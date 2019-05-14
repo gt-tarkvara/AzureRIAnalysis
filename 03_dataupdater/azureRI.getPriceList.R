@@ -42,6 +42,8 @@ azureRI.getPriceList <- function(obj = NULL, billingPeriod = NULL) {
     return(tibble())
   }
   
+  margin <- obj$margin
+  
   result <- tryCatch(
     {
       fromJSON(result)
@@ -54,16 +56,10 @@ azureRI.getPriceList <- function(obj = NULL, billingPeriod = NULL) {
       warning(cond, immediate. = TRUE)
       return(tibble())
     }
-  )
-  
-#  %>%
-#    mutate(
-#      baseHourRate = if_else(term=="P1Y",(amount/(365*24))/quantity, (amount/(3*365*24))/quantity)
-#    ) %>%
-#    filter(
-#      eventType == "Purchase"
-#    )
-  
+  ) %>%
+    mutate(
+      unitPrice = unitPrice * margin
+    )
   
   return(result)
 }

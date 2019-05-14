@@ -45,7 +45,10 @@ azureRI.getUsageDetails <- function(obj = NULL, billingPeriod = NULL) {
   
   jsonColumns <- ParseJSONColumn(result$AdditionalInfo)
   
-  result <- as_tibble(cbind(result, jsonColumns))
+  margin <- obj$margin
+  
+  result <- as_tibble(cbind(result, jsonColumns)) %>%
+    mutate(Cost = Cost*margin)
   
   return(result)
 }

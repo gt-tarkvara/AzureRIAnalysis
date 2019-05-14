@@ -6,7 +6,7 @@ library(rvest)
 library(lubridate)
 
 azureRI <- function(enrollmentno, bearer, margin=1.0, cachedir = tempdir()) {
-  value <- list(enrollmentNumber = enrollmentno, bearer = bearer, margin=margin, cachedir = cachedir)
+  value <- list(enrollmentNumber = enrollmentno, bearer = bearer, margin=as.numeric(margin), cachedir = cachedir)
   attr(value, "class") <- "azureRI"
   value
 }
