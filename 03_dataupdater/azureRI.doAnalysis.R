@@ -40,7 +40,7 @@ friendlyServiceNames <- azureRI.getFriendlyServiceNames(filepath = "/data/cache/
 
 # === UsageDetails
 # download usage details 
-usageDetails <- azureRI.getUsageDetails(obj = apiObj, billingPeriod = billingPeriod, tempdir = "/data/cache")
+usageDetails <- azureRI.getUsageDetails(obj = apiObj, billingPeriod = billingPeriod)
 
 
 

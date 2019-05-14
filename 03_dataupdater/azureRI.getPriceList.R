@@ -1,7 +1,7 @@
 
 if(!exists("azureRI", mode="function")) source("azureRI.R")
 
-azureRI.getPriceList <- function(obj = NULL, billingPeriod = NULL, temp_dir = tempdir()) {
+azureRI.getPriceList <- function(obj = NULL, billingPeriod = NULL) {
   
   if (is.null(obj)) {
     obj <- azureRI.default
@@ -24,6 +24,8 @@ azureRI.getPriceList <- function(obj = NULL, billingPeriod = NULL, temp_dir = te
     return(tibble())
   }
   
+  temp_dir <- obj$cachedir
+  
   if (!dir.exists(temp_dir)) {
     dir.create(temp_dir, recursive = T)
   }
@@ -32,7 +34,7 @@ azureRI.getPriceList <- function(obj = NULL, billingPeriod = NULL, temp_dir = te
   
   filepath <- paste(temp_dir, paste0("pricesheet-", billingPeriod, ".json"), sep = .Platform$file.sep)
   
-  print(filepath)
+  #print(filepath)
   
   result <- azureRI.CallBillingApi(obj, version = "v2", query = query, filepath = filepath, reload = FALSE )
   

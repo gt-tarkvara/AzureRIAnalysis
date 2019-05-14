@@ -1,6 +1,6 @@
 if(!exists("azureRI", mode="function")) source("azureRI.R")
 
-azureRI.getUsageDetails <- function(obj = NULL, billingPeriod = NULL, tempdir = tempdir()) {
+azureRI.getUsageDetails <- function(obj = NULL, billingPeriod = NULL) {
   
   if (is.null(obj)) {
     obj <- azureRI.default
@@ -23,15 +23,17 @@ azureRI.getUsageDetails <- function(obj = NULL, billingPeriod = NULL, tempdir = 
      return(tibble())
   }
   
-  if (!dir.exists(tempdir)) {
-    dir.create(tempdir, recursive = T)
+  temp_dir <- obj$cachedir
+  
+  if (!dir.exists(temp_dir)) {
+    dir.create(temp_dir, recursive = T)
   }
   
   q <- paste0("/usagedetails/download?billingPeriod=", billingPeriod)
   
-  filepath <- paste(tempdir, paste0("usagedetails-", billingPeriod, ".csv"), sep = .Platform$file.sep)
+  filepath <- paste(temp_dir, paste0("usagedetails-", billingPeriod, ".csv"), sep = .Platform$file.sep)
   
-  print(filepath)
+  #print(filepath)
   
   result <- azureRI.CallBillingApi(obj, version = "v3", query = q, filepath = filepath, reload = FALSE )
   
