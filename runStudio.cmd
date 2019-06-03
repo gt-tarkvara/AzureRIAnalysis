@@ -1,1 +1,1 @@
-docker run -d -p 8787:8787 -it --rm -v E:\t\Turnit\AzureRIAnalysis\03_dataupdater:/home/rstudio -v E:\t\Turnit\cache:/data/cache -e PASSWORD=yourpasswordhere herrbpl/rstudio-tidyverse
+docker run -d -p 8787:8787 -it --rm -v D:\t\Turnit\AzureRIAnalysis\03_dataupdater:/home/rstudio -v D:\t\Turnit\cache:/data/cache -e PASSWORD=yourpasswordhere herrbpl/rstudio-tidyverse
