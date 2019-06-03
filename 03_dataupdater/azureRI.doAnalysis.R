@@ -157,4 +157,4 @@ riHoursWithRICosts <- left_join(x = riHoursWithRICosts, y = instanceSizeFlexibil
 
 # === PriceSheet
 
-
+pricesheet <- azureRI.getPriceList(obj = apiObj, billingPeriod = billingPeriod)
