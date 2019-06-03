@@ -1,0 +1,1 @@
+docker build -t herrbpl/rstudio-tidyverse -f Dockerfile.RStudio.intermediate .
