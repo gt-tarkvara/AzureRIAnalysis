@@ -1,5 +1,7 @@
 # TODO: Refactor: azureRI.loadXXX - retrieves raw data from source, uses local file caching, parses raw data, adds billingperiod metadata
+# parameters - billingPeriod, 
 # TODO: Refactor: azureRI.getXXX - checks if cached in database and uses cache or loads and prepares data (joins, filter, selections) from azureRI.loadXXX function
+# parameters - billingPeriod
 
 # Create analysis itself
 if(!exists("azureRI", mode="function")) source("azureRI.R")
@@ -43,7 +45,9 @@ friendlyServiceNames <- azureRI.getFriendlyServiceNames(filepath = "/data/cache/
 
 # === PriceSheet
 
-priceSheet <- azureRI.getPriceList(obj = apiObj, billingPeriod = billingPeriod)
+priceSheet <- azureRI.getPriceList(obj = apiObj, billingPeriod = billingPeriod) %>%
+  select(-meterId, -unitOfMeasure)
+
 
 
 
@@ -242,6 +246,9 @@ billingData <- usageDetailsWithEmptyRows %>%
     ConsumedUnits = sum(ConsumedUnits, na.rm = T),
     EffectiveRate = mean(EffectiveRate, na.rm = T),
     ExtendedCost = sum(ExtendedCost, na.rm =T )
+  ) %>%
+  mutate(
+    EffectiveRate = ifelse(is.na(EffectiveRate), 0, EffectiveRate)
   )
 
 billingData <- left_join(x=billingData, y=riHoursWithRICosts, by=c("Date"="Date", "InstanceId"="InstanceId", "MeterId"="ConsumptionMeter")) 
