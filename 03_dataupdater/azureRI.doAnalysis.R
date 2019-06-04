@@ -191,3 +191,23 @@ devTestMapping <- left_join(x=devTestMapping_B, y=devTestMapping , by=c("NameWit
     DevTestPartNumber,
     DevTestPrice
   )
+
+rm(devTestMapping_B)
+
+
+# === UsageDetailsWithEmptyRows
+vmDetails <- usageDetails %>%
+  filter(MeterCategory == "Virtual Machines") %>%
+  filter(
+    Product != "Reservation-Base VM" & Product != "VM RI - Compute" 
+  ) %>%
+  group_by(InstanceId, MeterId, SubscriptionName, Product, MeterSubCategory, MeterCategory, UnitOfMeasure, PartNumber, 
+           ConversionFactor, 
+           SubscriptionGuid) %>%
+  count() %>%
+  select(
+    -n
+  )
+
+
+
