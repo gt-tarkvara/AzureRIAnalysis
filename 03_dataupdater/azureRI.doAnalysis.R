@@ -1,3 +1,6 @@
+# TODO: Refactor: azureRI.loadXXX - retrieves raw data from source, uses local file caching, parses raw data, adds billingperiod metadata
+# TODO: Refactor: azureRI.getXXX - checks if cached in database and uses cache or loads and prepares data (joins, filter, selections) from azureRI.loadXXX function
+
 # Create analysis itself
 if(!exists("azureRI", mode="function")) source("azureRI.R")
 
@@ -28,21 +31,25 @@ if (is.na(as.numeric(margin))) {
 # TODO: make possible to load specific billing period (if saved to DB etc)
 friendlyServiceNames <- azureRI.getFriendlyServiceNames(filepath = "/data/cache/friendlyservicenames.xlsx" ) %>%
   select(
+    Name,
     ConsumptionPartNumber,
     ReportedUnits,
     EnterpriseUnits,
     UnitOfMeasure,
-    ConversionFactor
-  ) 
+    ConversionFactor,
+    "Meter Category"
+  ) %>%
+  rename(MeterCategory = "Meter Category")
 
+# === PriceSheet
+
+priceSheet <- azureRI.getPriceList(obj = apiObj, billingPeriod = billingPeriod)
 
 
 
 # === UsageDetails
 # download usage details 
 usageDetails <- azureRI.getUsageDetails(obj = apiObj, billingPeriod = billingPeriod)
-
-
 
 # Remove columns not needed ad adjusting cost with margin
 usageDetails <- usageDetails %>% 
@@ -74,6 +81,10 @@ usageDetails <- left_join(usageDetails, friendlyServiceNames, by = c("PartNumber
   select(
     -UnitOfMeasure.y,
     -UnitOfMeasure.x,
+    -MeterCategory.y
+  ) %>%
+  rename(
+    MeterCategory = MeterCategory.x
   )
 
 # === ReservationCharge
@@ -155,6 +166,28 @@ riHoursWithRICosts <- left_join(x = riHoursWithRICosts, y = instanceSizeFlexibil
   group_by(InstanceId, Date, SubscriptionGuid, ConsumptionMeter) %>%
   summarise(RIHours=sum(ConsumedQuantity), RIRate=mean(usedRIRate), RICost=sum(RICost))
 
-# === PriceSheet
 
-pricesheet <- azureRI.getPriceList(obj = apiObj, billingPeriod = billingPeriod)
+# === DevTestMapping
+
+devTestMapping <- friendlyServiceNames %>%
+    filter(MeterCategory == "Virtual Machines")
+
+devTestMapping <- left_join(x = devTestMapping, y = priceSheet, by = c("ConsumptionPartNumber" = "partNumber"))
+
+devTestMapping_B <- devTestMapping %>%
+    mutate(NameWithoutDevTest = str_replace(Name, "Dev/Test - ","")) %>%
+    filter(str_detect(Name, "Dev/Test") ) %>%
+    select(
+      NameWithoutDevTest,
+      DevTestPrice = unitPrice,
+      DevTestPartNumber = ConsumptionPartNumber
+    )
+
+devTestMapping <- left_join(x=devTestMapping_B, y=devTestMapping , by=c("NameWithoutDevTest" = "Name")) %>%
+  select(
+    Name = NameWithoutDevTest,
+    FullPricePartNumber = ConsumptionPartNumber,
+    FullPrice = unitPrice,
+    DevTestPartNumber,
+    DevTestPrice
+  )
