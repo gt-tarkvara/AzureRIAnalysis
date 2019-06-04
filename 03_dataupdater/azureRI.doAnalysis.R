@@ -164,7 +164,11 @@ riHoursWithRICosts <- left_join(x = riHoursWithRICosts, y = instanceSizeFlexibil
     RICost = ConsumedQuantity * usedRIRate
     ) %>%
   group_by(InstanceId, Date, SubscriptionGuid, ConsumptionMeter) %>%
-  summarise(RIHours=sum(ConsumedQuantity), RIRate=mean(usedRIRate), RICost=sum(RICost))
+  summarise(
+    RIHours=sum(ConsumedQuantity, na.rm = T), 
+    RIRate=mean(usedRIRate,na.rm = T), 
+    RICost=sum(RICost, na.rm = T)
+  )
 
 
 # === DevTestMapping
@@ -209,5 +213,54 @@ vmDetails <- usageDetails %>%
     -n
   )
 
+
+instanceNames <- usageDetails %>%
+  filter(MeterCategory == "Virtual Machines") %>%
+  group_by(SubscriptionGuid, Date, InstanceId) %>%
+  count() %>%
+  select(
+    -n
+  )
+
+instanceNames <- left_join(x=instanceNames, y=vmDetails, by=c("SubscriptionGuid"="SubscriptionGuid", "InstanceId"="InstanceId"))
+
+usageDetailsWithEmptyRows <- bind_rows(usageDetails, instanceNames) %>%
+  rename(ExtendedCost = Cost)
+
+rm(instanceNames)
+rm(vmDetails)
+
+
+# === BillingData
+billingData <- usageDetailsWithEmptyRows %>%
+  group_by(Date, InstanceId, MeterId, SubscriptionName, Product, MeterSubCategory, MeterCategory, UnitOfMeasure, PartNumber,
+           ConversionFactor
+           ) %>%
+  summarise(
+    ConsumedUnits = sum(ConsumedUnits, na.rm = T),
+    EffectiveRate = mean(EffectiveRate, na.rm = T),
+    ExtendedCost = sum(ExtendedCost, na.rm =T )
+  )
+
+billingData <- left_join(x=billingData, y=riHoursWithRICosts, by=c("Date"="Date", "InstanceId"="InstanceId", "MeterId"="ConsumptionMeter")) 
+
+billingData <- left_join(x=billingData, y=priceSheet, by=c("PartNumber"="partNumber")) %>%
+  mutate(
+    ConsumedUnitsCoveredByRI = if_else(is.na(RIHours), 0, RIHours/ConversionFactor ),
+    ConsumedUnitsCoveredByRIFullPrice = ConsumedUnitsCoveredByRI*unitPrice,
+    CostSavingsFromRI = if_else(is.na(ConsumedUnitsCoveredByRIFullPrice-RICost),0, ConsumedUnitsCoveredByRIFullPrice-RICost)
+  ) %>%
+  rename(
+    CostUsageFromRI = RICost,
+    RIHourRate = RIRate,
+    RIHoursUsed = RIHours
+  )
+  
+billingData <- left_join(x=billingData, y=devTestMapping, by=c("PartNumber"="DevTestPartNumber")) %>%
+  mutate(
+    DevTestConsumptionCostWithFullPrice = FullPrice*ConsumedUnits,
+    CostSavingsFromDevTest = if_else(is.na(DevTestConsumptionCostWithFullPrice),0, DevTestConsumptionCostWithFullPrice-ExtendedCost),
+    CostSavingsTotal = CostSavingsFromRI + CostSavingsFromDevTest
+  )
 
 
