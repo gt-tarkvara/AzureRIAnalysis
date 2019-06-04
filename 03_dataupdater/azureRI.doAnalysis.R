@@ -95,7 +95,7 @@ reservationCharge <- azureRI.getReservationCharges(obj = apiObj)
 instanceSizeFlexibility <- azureRI.getInstanceSizeFlexibility()
 
 # === RIHoursWithRICosts
-riHoursWithRICosts <- usageDetails %>%
+riHoursWithRICosts_raw <- usageDetails %>%
   select(
     -AccountName,
     -Cost,
@@ -126,7 +126,7 @@ riHoursWithRICosts <- usageDetails %>%
   )
 
 
-riHoursWithRICosts <-left_join(x = riHoursWithRICosts, y = reservationCharge, 
+riHoursWithRICosts_raw <-left_join(x = riHoursWithRICosts_raw, y = reservationCharge, 
                                by = c("SubscriptionGuid"="purchasingSubscriptionGuid",
                                       "ReservationOrderId"="reservationOrderId")) %>%
   select(
@@ -148,13 +148,13 @@ riHoursWithRICosts <-left_join(x = riHoursWithRICosts, y = reservationCharge,
     -reservationOrderName
   ) 
 
-riHoursWithRICosts <- left_join(x = riHoursWithRICosts, y = instanceSizeFlexibility, by = c("armSkuName"="Size")) %>%
+riHoursWithRICosts_raw <- left_join(x = riHoursWithRICosts_raw, y = instanceSizeFlexibility, by = c("armSkuName"="Size")) %>%
   select(
     -billingperiod
   ) %>%
   rename(Maximum.Ratio = Ratio)
 
-riHoursWithRICosts <- left_join(x = riHoursWithRICosts, y = instanceSizeFlexibility, by = c("RealArmSkuName"="Size")) %>%
+riHoursWithRICosts_raw <- left_join(x = riHoursWithRICosts_raw, y = instanceSizeFlexibility, by = c("RealArmSkuName"="Size")) %>%
   select(
     -billingperiod
   ) %>%
@@ -162,7 +162,9 @@ riHoursWithRICosts <- left_join(x = riHoursWithRICosts, y = instanceSizeFlexibil
   mutate(
     usedRIRate = baseHourRate*(Actual.Ratio/Maximum.Ratio),
     RICost = ConsumedQuantity * usedRIRate
-    ) %>%
+    ) 
+
+riHoursWithRICosts <- riHoursWithRICosts_raw %>%  
   group_by(InstanceId, Date, SubscriptionGuid, ConsumptionMeter) %>%
   summarise(
     RIHours=sum(ConsumedQuantity, na.rm = T), 
@@ -264,3 +266,39 @@ billingData <- left_join(x=billingData, y=devTestMapping, by=c("PartNumber"="Dev
   )
 
 
+# === RIHoursUtilization
+
+riHoursUtilization <- riHoursWithRICosts_raw %>%  
+  group_by(InstanceId, Date, SubscriptionGuid, ConsumptionMeter, ReservationOrderId, RealArmSkuName) %>%
+  summarise(
+    RIHours=sum(ConsumedQuantity, na.rm = T), 
+    RIRate=mean(usedRIRate,na.rm = T), 
+    RICost=sum(RICost, na.rm = T)
+  )
+
+riHoursUtilization <- left_join(x=riHoursUtilization, y=reservationCharge, 
+                                by=c("SubscriptionGuid"="purchasingSubscriptionGuid", "ReservationOrderId"="reservationOrderId")) %>%
+  mutate(
+    TotalHoursAvailable = quantity*24,
+    TotalRICommitmentAvailable = TotalHoursAvailable*baseHourRate,
+    AvailableRIHoursUsage = RIHours/TotalHoursAvailable,
+    AvailableRICommitmentUsage = RICost/TotalRICommitmentAvailable
+  ) %>%
+  select(
+    amount
+    ,AvailableRICommitmentUsage
+    ,AvailableRIHoursUsage
+    ,baseHourRate
+    ,ConsumptionMeter
+    ,Date
+    ,InstanceId
+    ,purchasingSubscriptionName
+    ,quantity
+    ,ReservationOrderId
+    ,RICost
+    ,RIHours
+    ,RIRate
+    ,SubscriptionGuid
+    ,TotalHoursAvailable
+    ,TotalRICommitmentAvailable
+  )
