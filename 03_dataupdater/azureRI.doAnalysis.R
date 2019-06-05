@@ -46,7 +46,12 @@ friendlyServiceNames <- azureRI.getFriendlyServiceNames(filepath = "/data/cache/
 # === PriceSheet
 
 priceSheet <- azureRI.getPriceList(obj = apiObj, billingPeriod = billingPeriod) %>%
-  select(-meterId, -unitOfMeasure)
+  select(
+    -meterId, 
+    -unitOfMeasure, 
+    -id,
+    -meterName
+  )
 
 
 
