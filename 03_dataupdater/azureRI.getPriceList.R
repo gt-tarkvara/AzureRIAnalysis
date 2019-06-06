@@ -1,30 +1,9 @@
 
 if(!exists("azureRI", mode="function")) source("azureRI.R")
 
-azureRI.getPriceList <- function(obj = NULL, billingPeriod = NULL) {
+azureRI.getPriceList <- function(apiObj, billingPeriod) {
   
-  if (is.null(obj)) {
-    obj <- azureRI.default
-  }
-  
-  if (!is(obj, "azureRI")) {
-    stop("Expected AzureRI object")
-  }
-  
-  # previous month if not specified
-  if (is.null(billingPeriod)) {
-    billingPeriod <- format(as.Date(format(Sys.Date(), "%Y-%m-01")) - 1, "%Y%m")
-  }
-  
-  # check if billingperiod is in acceptable limits
-  periods <- azureRI.getBillingPeriods(obj)
-  
-  if (!(billingPeriod %in% periods[,1])) {
-    warning("Invalid billing period specified", immediate. = TRUE)
-    return(tibble())
-  }
-  
-  temp_dir <- obj$cachedir
+  temp_dir <- apiObj$cachedir
   
   if (!dir.exists(temp_dir)) {
     dir.create(temp_dir, recursive = T)
@@ -36,13 +15,13 @@ azureRI.getPriceList <- function(obj = NULL, billingPeriod = NULL) {
   
   #print(filepath)
   
-  result <- azureRI.CallBillingApi(obj, version = "v2", query = query, filepath = filepath, reload = FALSE )
+  result <- azureRI.CallBillingApi(apiObj, version = "v2", query = query, filepath = filepath, reload = FALSE )
   
   if (is.na(result)) {
     return(tibble())
   }
   
-  margin <- obj$margin
+  margin <- apiObj$margin
   
   result <- tryCatch(
     {
@@ -58,7 +37,14 @@ azureRI.getPriceList <- function(obj = NULL, billingPeriod = NULL) {
     }
   ) %>%
     mutate(
-      unitPrice = unitPrice * margin
+      UnitPrice = unitPrice * margin
+    ) %>%
+    select(
+      BillingPeriod = billingPeriodId,
+      IncludedQuantity = includedQuantity,
+      PartNumber = partNumber,
+      UnitPrice,
+      CurrencyCode = currencyCode
     )
   
   return(result)

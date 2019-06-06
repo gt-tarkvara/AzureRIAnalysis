@@ -21,16 +21,12 @@ if (is.null(billingPeriod) || billingPeriod == "") {
 message(paste0("Billing Period ", billingPeriod))
 
 # Margin
-margin <- Sys.getenv("AZURERI_MARGIN", unset = 1.0)
-if (is.na(as.numeric(margin))) {
-  warning(paste0("AZURERI_MARGIN ", margin, " is not a number!"),appendLF = T, immediate. = T )
-  margin <- 1.0
-} else {
-  margin <- as.double(margin)
-}
+
+margin <- azureRI.get("Margin", apiObj = apiObj)
 
 # === Friendly Service Names
 # TODO: make possible to load specific billing period (if saved to DB etc)
+if (F) {
 friendlyServiceNames <- azureRI.getFriendlyServiceNames(filepath = "/data/cache/friendlyservicenames.xlsx" ) %>%
   select(
     Name,
@@ -42,9 +38,13 @@ friendlyServiceNames <- azureRI.getFriendlyServiceNames(filepath = "/data/cache/
     "Meter Category"
   ) %>%
   rename(MeterCategory = "Meter Category")
+}
+
+friendlyServiceNames <- azureRI.get("FriendlyServiceNames", apiObj = apiObj, billingPeriod = billingPeriod)
 
 # === PriceSheet
-
+# NB! Renamed to CamelCase
+if (F) {
 priceSheet <- azureRI.getPriceList(obj = apiObj, billingPeriod = billingPeriod) %>%
   select(
     -meterId, 
@@ -52,6 +52,7 @@ priceSheet <- azureRI.getPriceList(obj = apiObj, billingPeriod = billingPeriod) 
     -id,
     -meterName
   )
+}
 
 
 

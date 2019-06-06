@@ -63,13 +63,14 @@ dbBegin(con)
 rs <- dbExecute(con, "alter table mtcarsx alter column BusinessKey varchar(255) not null")
 rs <- dbExecute(con, "alter table mtcarsx add constraint pk_mtcarsx primary key clustered (BusinessKey)")
 dbCommit(con)
-dbWriteTable(con, "mtcarsx", as.data.frame(bb), append=T, , row.names="BusinessKey" )
+dbWriteTable(con, "mtcarsx", as.data.frame(bb), append=T, row.names="BusinessKey" )
 
 # delete some rows
 rs <- dbExecute(con, "delete from mtcarsx where billingPeriod='201901'")
 
-#reinsert
-dbWriteTable(con, "mtcarsx", as.data.frame(ab), append=T)
+#reinsert subset
+dd <- bb[bb$billingPeriod == "201901",]
+dbWriteTable(con, "mtcarsx", as.data.frame(dd), append=T, row.names="BusinessKey")
 
 # add primary key
 

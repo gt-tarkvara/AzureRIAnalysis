@@ -1,7 +1,7 @@
 
 if(!exists("azureRI", mode="function")) source("azureRI.R")
 
-azureRI.getBillingPeriods <- function(obj = NULL) {
+azureRI.getBillingPeriods <- function(obj = NULL, billingPeriod=NULL) {
   
   if (is.null(obj)) {
     obj <- azureRI.default
