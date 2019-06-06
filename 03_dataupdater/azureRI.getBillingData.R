@@ -9,7 +9,7 @@
 #' @examples
 #' azureRI.getBillingData(apiObj, billingPeriod="201901")
 
-azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL) {
+azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL, ...) {
   
 # === BillingData
 #billingData <- usageDetailsWithEmptyRows %>%

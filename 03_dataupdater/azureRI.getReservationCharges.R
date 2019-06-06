@@ -1,7 +1,7 @@
 
 if(!exists("azureRI", mode="function")) source("azureRI.R")
 
-azureRI.getReservationCharges <- function(obj = NULL, startdate = Sys.Date() - 3*365, enddate = Sys.Date()) {
+azureRI.getReservationCharges <- function(obj = NULL, startdate = Sys.Date() - 3*365, enddate = Sys.Date(), ...) {
   
   if (is.null(obj)) {
     obj <- azureRI.default
@@ -18,12 +18,12 @@ azureRI.getReservationCharges <- function(obj = NULL, startdate = Sys.Date() - 3
   if (is.na(result)) {
     return(tibble())
   }
-  
+  #str(result)
   margin <- obj$margin
   
   result <- tryCatch(
     {
-      fromJSON(result)
+      as.tibble(fromJSON(result))
     },
     error = function(cond) {
       warning(cond, immediate. = TRUE)
@@ -33,7 +33,13 @@ azureRI.getReservationCharges <- function(obj = NULL, startdate = Sys.Date() - 3
       warning(cond, immediate. = TRUE)
       return(tibble())
     }
-  ) %>%
+  ) 
+  
+  if (length(result) == 0) {
+    # Should return empty frame
+    return(NA)
+  }
+  result <- result %>%
     mutate(
       baseHourRate = if_else(term=="P1Y",(amount/(365*24))/quantity, (amount/(3*365*24))/quantity)
     ) %>%

@@ -1,7 +1,7 @@
 
 if(!exists("azureRI", mode="function")) source("azureRI.R")
 
-azureRI.getBillingPeriods <- function(obj = NULL, billingPeriod=NULL) {
+azureRI.getBillingPeriods <- function(obj = NULL, billingPeriod=NULL, ...) {
   
   if (is.null(obj)) {
     obj <- azureRI.default
@@ -23,7 +23,7 @@ azureRI.getBillingPeriods <- function(obj = NULL, billingPeriod=NULL) {
   
   result <- tryCatch(
     {
-      fromJSON(result)
+      as.tibble(fromJSON(result))
     },
     error = function(cond) {
       warning(cond, immediate. = TRUE)

@@ -1,29 +1,39 @@
 if(!exists("azureRI", mode="function")) source("azureRI.R")
 
-azureRI.getUsageDetails <- function(obj = NULL, billingPeriod = NULL) {
+azureRI.getUsageDetails <- function(apiObj, billingPeriod, ...) {
   
-  if (is.null(obj)) {
-    obj <- azureRI.default
+  # Helper functions start
+  PrepareForJSON <- function(x) {
+    if (is.list(x) || is.vector(x)) {
+      
+      as.vector(sapply(x, 
+                       function(xx) {
+                         if (xx == "{}") { "null" } 
+                         else {
+                           if (startsWith(xx, "{")) { xx } 
+                           else { paste0("{ \"Misc\":\"", xx, "\"}")}
+                         }
+                       }, USE.NAMES = F))  
+    } else {
+      if (x == "{}") { "null" } 
+      else {
+        if (startsWith(x, "{")) { x } 
+        else { paste0("{ \"Misc\":\"", x, "\"}")}
+      }
+    }
   }
   
-  if (!is(obj, "azureRI")) {
-    stop("Expected AzureRI object")
+  
+  ParseJSONColumn <- function(x)  {
+    
+    str_c("[ ", str_c( PrepareForJSON( str_replace_na(x, replacement = "{}")), collapse = ",", sep=" "), " ]")  %>% 
+      fromJSON(flatten = T) %>% 
+      as_tibble()
   }
   
-  # previous month if not specified
-  if (is.null(billingPeriod)) {
-    billingPeriod <- format(as.Date(format(Sys.Date(), "%Y-%m-01")) - 1, "%Y%m")
-  }
+  # Helper functions end 
   
-  # check if billingperiod is in acceptable limits
-  periods <- azureRI.getBillingPeriods(obj)
-  
-  if (!(billingPeriod %in% periods[,1])) {
-     warning("Invalid billing period specified", immediate. = TRUE)
-     return(tibble())
-  }
-  
-  temp_dir <- obj$cachedir
+  temp_dir <- apiObj$cachedir
   
   if (!dir.exists(temp_dir)) {
     dir.create(temp_dir, recursive = T)
@@ -35,7 +45,7 @@ azureRI.getUsageDetails <- function(obj = NULL, billingPeriod = NULL) {
   
   #print(filepath)
   
-  result <- azureRI.CallBillingApi(obj, version = "v3", query = q, filepath = filepath, reload = FALSE )
+  result <- azureRI.CallBillingApi(apiObj, version = "v3", query = q, filepath = filepath, reload = FALSE )
   
   if (is.na(result)) {
     return(tibble())
@@ -45,39 +55,51 @@ azureRI.getUsageDetails <- function(obj = NULL, billingPeriod = NULL) {
   
   jsonColumns <- ParseJSONColumn(result$AdditionalInfo)
   
-  margin <- obj$margin
+  margin <- apiObj$margin
   
   result <- as_tibble(cbind(result, jsonColumns)) %>%
     mutate(Cost = Cost*margin)
   
+  # Apply calculations
+  
+  # Remove columns not needed ad adjusting cost with margin
+  result <- result %>% 
+    select(
+      -AdditionalInfo,
+      -ConsumedServiceId,
+      -CostCenter,
+      -DepartmentId,
+      -DepartmentName,
+      -ProductId,
+      -ResourceLocation,
+      -ResourceLocationId,
+      -ServiceAdministratorId,
+      -StoreServiceIdentifier,
+      -SubscriptionId,
+      -AccountId,
+      -AccountOwnerEmail
+    ) 
+  
+  result <- left_join(result, azureRI.get("FriendlyServiceNames", apiObj = apiObj, billingPeriod = billingPeriod),
+                            by = c("PartNumber" = "ConsumptionPartNumber")) %>%
+    mutate(
+      ConversionFactor = as.numeric(ifelse(ConversionFactor == "Daily", 1/days_in_month(Date), ConversionFactor))
+    ) %>%
+    mutate(
+      ConsumedUnits = ConsumedQuantity/ConversionFactor,
+      EffectiveRate = ResourceRate*ConversionFactor,
+      UnitOfMeasure = paste(formatC(EnterpriseUnits, digits=0,format="d"), ifelse(is.na(UnitOfMeasure.y), "",UnitOfMeasure.y) , " ")
+    ) %>%
+    select(
+      -UnitOfMeasure.y,
+      -UnitOfMeasure.x,
+      -MeterCategory.y
+    ) %>%
+    rename(
+      MeterCategory = MeterCategory.x
+    )
+    # TODO: Select only required variables
+  
   return(result)
 }
 
-
-PrepareForJSON <- function(x) {
-  if (is.list(x) || is.vector(x)) {
-    
-    as.vector(sapply(x, 
-        function(xx) {
-          if (xx == "{}") { "null" } 
-          else {
-            if (startsWith(xx, "{")) { xx } 
-            else { paste0("{ \"Misc\":\"", xx, "\"}")}
-          }
-        }, USE.NAMES = F))  
-  } else {
-    if (x == "{}") { "null" } 
-    else {
-      if (startsWith(x, "{")) { x } 
-      else { paste0("{ \"Misc\":\"", x, "\"}")}
-    }
-  }
-}
-
-
-ParseJSONColumn <- function(x)  {
-  
-  str_c("[ ", str_c( PrepareForJSON( str_replace_na(x, replacement = "{}")), collapse = ",", sep=" "), " ]")  %>% 
-    fromJSON(flatten = T) %>% 
-    as_tibble()
-}

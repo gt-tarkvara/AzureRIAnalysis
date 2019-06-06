@@ -4,7 +4,7 @@ if(!exists("azureRI", mode="function")) source("azureRI.R")
 
 # TODO: add possibility to load snapshot created during specific billin period
 #azureRI.getFriendlyServiceNames <- function(filepath=NULL, reload=FALSE) {
-azureRI.getFriendlyServiceNames <- function(apiObj, billingPeriod) {
+azureRI.getFriendlyServiceNames <- function(apiObj, billingPeriod, ...) {
   
   # Source url of information
   iurl <- "https://azurepricing.blob.core.windows.net/supplemental/Friendly_Service_Names.xlsx"

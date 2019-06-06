@@ -7,7 +7,10 @@
 #' @examples
 #' cat_function()
 
-azureRI.get <- function(what, apiObj=NULL, billingPeriod = NULL, reload = FALSE, row.names = "BusinessKey") {
+azureRI.get <- function(what, apiObj=NULL, billingPeriod = NULL, reload = FALSE, row.names = "BusinessKey", ...) {
+
+  # Should we cache things for apiObj?  
+  # Optimize later.. 
   
   # Input check
   if (is.null(apiObj)) {
@@ -48,8 +51,10 @@ azureRI.get <- function(what, apiObj=NULL, billingPeriod = NULL, reload = FALSE,
      stop(paste0("Function ", fname," not found"))
   }
   
+  #cat(paste(list(...)))
+  
   # execute retrieving function
-  ret <- do.call(fname, list(apiObj, billingPeriod))
+  ret <- do.call(fname, list(apiObj=apiObj, billingPeriod=billingPeriod, ... ))
   return(ret)
   
   if (F) {

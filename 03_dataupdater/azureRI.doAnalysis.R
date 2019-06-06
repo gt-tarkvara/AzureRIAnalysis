@@ -55,10 +55,11 @@ priceSheet <- azureRI.getPriceList(obj = apiObj, billingPeriod = billingPeriod) 
 }
 
 
-
-
 # === UsageDetails
 # download usage details 
+usageDetails <- azureRI.get("UsageDetails", obj = apiObj, billingPeriod = billingPeriod)
+if (F) {
+# TODO: select only required set of variables
 usageDetails <- azureRI.getUsageDetails(obj = apiObj, billingPeriod = billingPeriod)
 
 # Remove columns not needed ad adjusting cost with margin
@@ -97,12 +98,18 @@ usageDetails <- left_join(usageDetails, friendlyServiceNames, by = c("PartNumber
     MeterCategory = MeterCategory.x
   )
 
+}
+
 # === ReservationCharge
 # use default reservation charges
-reservationCharge <- azureRI.getReservationCharges(obj = apiObj) 
+# reservationCharge <- azureRI.getReservationCharges(obj = apiObj)
+reservationCharge <- azureRI.get("ReservationCharges", apiObj = apiObj, billingPeriod = billingPeriod) 
 
 # === InstanceSizeflexibility
-instanceSizeFlexibility <- azureRI.getInstanceSizeFlexibility()
+# instanceSizeFlexibility <- azureRI.getInstanceSizeFlexibility()
+instanceSizeFlexibility <- azureRI.get("InstanceSizeFlexibility")
+
+if (F) {
 
 # === RIHoursWithRICosts
 riHoursWithRICosts_raw <- usageDetails %>%
@@ -173,6 +180,8 @@ riHoursWithRICosts_raw <- left_join(x = riHoursWithRICosts_raw, y = instanceSize
     usedRIRate = baseHourRate*(Actual.Ratio/Maximum.Ratio),
     RICost = ConsumedQuantity * usedRIRate
     ) 
+}
+
 
 riHoursWithRICosts <- riHoursWithRICosts_raw %>%  
   group_by(InstanceId, Date, SubscriptionGuid, ConsumptionMeter) %>%
