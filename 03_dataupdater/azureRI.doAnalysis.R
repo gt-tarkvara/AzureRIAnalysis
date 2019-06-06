@@ -107,7 +107,7 @@ reservationCharge <- azureRI.get("ReservationCharges", apiObj = apiObj, billingP
 
 # === InstanceSizeflexibility
 # instanceSizeFlexibility <- azureRI.getInstanceSizeFlexibility()
-instanceSizeFlexibility <- azureRI.get("InstanceSizeFlexibility")
+instanceSizeFlexibility <- azureRI.get("InstanceSizeFlexibility", apiObj = apiObj, billingPeriod = billingPeriod)
 
 if (F) {
 
@@ -181,8 +181,10 @@ riHoursWithRICosts_raw <- left_join(x = riHoursWithRICosts_raw, y = instanceSize
     RICost = ConsumedQuantity * usedRIRate
     ) 
 }
+riHoursWithRICosts_raw <- azureRI.get("RIHoursWithRICosts_raw", apiObj = apiObj, billingPeriod = billingPeriod)
+riHoursWithRICosts <- azureRI.get("RIHoursWithRICosts", apiObj = apiObj, billingPeriod = billingPeriod)
 
-
+if (F) {
 riHoursWithRICosts <- riHoursWithRICosts_raw %>%  
   group_by(InstanceId, Date, SubscriptionGuid, ConsumptionMeter) %>%
   summarise(
@@ -190,7 +192,7 @@ riHoursWithRICosts <- riHoursWithRICosts_raw %>%
     RIRate=mean(usedRIRate,na.rm = T), 
     RICost=sum(RICost, na.rm = T)
   )
-
+}
 
 # === DevTestMapping
 

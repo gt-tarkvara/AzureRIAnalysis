@@ -1,7 +1,7 @@
 
 if(!exists("azureRI", mode="function")) source("azureRI.R")
 
-azureRI.getPriceList <- function(apiObj, billingPeriod) {
+azureRI.getPriceList <- function(apiObj, billingPeriod, ...) {
   
   temp_dir <- apiObj$cachedir
   
