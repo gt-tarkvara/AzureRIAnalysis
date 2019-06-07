@@ -26,8 +26,6 @@ azureRI.get <- function(what, apiObj=NULL, billingPeriod = NULL, reload = FALSE,
     billingPeriod <- format(as.Date(format(Sys.Date(), "%Y-%m-01")) - 1, "%Y%m")
   }
   
-  # Check if periods exist in environment
-  
   # check if billingperiod is in acceptable limits
   periods <- azureRI.getBillingPeriods(apiObj)
   
@@ -53,10 +51,37 @@ azureRI.get <- function(what, apiObj=NULL, billingPeriod = NULL, reload = FALSE,
   }
   
   #cat(paste(list(...)))
+  ret <- NULL
+  # if reload, then do not attempt to load from db/environment but rather reload from scratch
+  if (reload) {
   
-  # execute retrieving function
-  ret <- do.call(fname, list(apiObj=apiObj, billingPeriod=billingPeriod, ... ))
-  return(ret)
+    # execute retrieving function
+    ret <- do.call(fname, list(apiObj=apiObj, billingPeriod=billingPeriod, ... ))
+    if (!is.null(ret) && length(ret) > 0 && is_empty(ret)) {
+      
+      assign(what, ret, pos = apiObj$env, envir = apiObj$env)
+    }
+    
+    return(ret)
+  } else {
+    
+    # if in environment cache
+    if (exists(what, envir = apiObj$env)) {
+      ret <- get(what, envir = apiObj$env)
+    } else {
+      
+      # look in database
+      
+      # not found, 
+      
+      ret <- do.call(fname, list(apiObj=apiObj, billingPeriod=billingPeriod, ... ))
+      
+      assign(what, ret, pos = apiObj$env, envir = apiObj$env)
+      
+      
+    }
+    return(ret)
+  }
   
   if (F) {
     
