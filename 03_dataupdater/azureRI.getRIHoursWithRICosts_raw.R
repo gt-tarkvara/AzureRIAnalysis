@@ -38,28 +38,28 @@ azureRI.getRIHoursWithRICosts_raw <- function(apiObj, billingPeriod, ...) {
 
 
   riHoursWithRICosts_raw <-left_join(x = riHoursWithRICosts_raw, y = reservationCharge, 
-                                     by = c("SubscriptionGuid"="purchasingSubscriptionGuid",
-                                            "ReservationOrderId"="reservationOrderId")) %>%
+                                     by = c("SubscriptionGuid"="PurchasingSubscriptionGuid",
+                                            "ReservationOrderId"="ReservationOrderId")) %>%
     select(
-      -purchasingEnrollment,
-      -term,
-      -region,
-      -purchasingSubscriptionName,
-      -accountName,
-      -accountOwnerEmail,
-      -departmentName,
-      -costCenter,
-      -currentEnrollment,
-      -eventDate,
-      -description,
-      -eventType,
-      -quantity,
-      -amount,
-      -currency,
-      -reservationOrderName
+      -PurchasingEnrollment,
+      -Term,
+      -Region,
+      -PurchasingSubscriptionName,
+      -AccountName,
+      -AccountOwnerEmail,
+      -DepartmentName,
+      -CostCenter,
+      -CurrentEnrollment,
+      -EventDate,
+      -Description,
+      -EventType,
+      -Quantity,
+      -Amount,
+      -Currency,
+      -ReservationOrderName
     ) 
 
-  riHoursWithRICosts_raw <- left_join(x = riHoursWithRICosts_raw, y = instanceSizeFlexibility, by = c("armSkuName"="Size")) %>%
+  riHoursWithRICosts_raw <- left_join(x = riHoursWithRICosts_raw, y = instanceSizeFlexibility, by = c("ArmSkuName"="Size")) %>%
     select(
       -BillingPeriod.x, 
       -BillingPeriod.y 
@@ -69,8 +69,8 @@ azureRI.getRIHoursWithRICosts_raw <- function(apiObj, billingPeriod, ...) {
   riHoursWithRICosts_raw <- left_join(x = riHoursWithRICosts_raw, y = instanceSizeFlexibility, by = c("RealArmSkuName"="Size")) %>%
     rename(Actual.Ratio = Ratio) %>%
     mutate(
-      usedRIRate = baseHourRate*(Actual.Ratio/Maximum.Ratio),
-      RICost = ConsumedQuantity * usedRIRate
+      UsedRIRate = BaseHourRate*(Actual.Ratio/Maximum.Ratio),
+      RICost = ConsumedQuantity * UsedRIRate
     ) 
 
   return (riHoursWithRICosts_raw)
