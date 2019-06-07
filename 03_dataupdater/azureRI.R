@@ -16,7 +16,7 @@ azureRI <- function(enrollmentno, bearer, margin=1.0, cachedir = tempdir()) {
     margin <- as.double(margin)
   }
   
-  value <- list(enrollmentNumber = enrollmentno, bearer = bearer, margin=as.numeric(margin), cachedir = cachedir)
+  value <- list(enrollmentNumber = enrollmentno, bearer = bearer, margin=as.numeric(margin), cachedir = cachedir, env = new.env(parent = emptyenv()))
   attr(value, "class") <- "azureRI"
   
   # register db cacheable classes, along with key definitions

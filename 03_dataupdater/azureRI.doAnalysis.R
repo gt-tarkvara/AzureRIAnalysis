@@ -309,15 +309,15 @@ riHoursUtilization <- left_join(x=riHoursUtilization, y=reservationCharge,
     AvailableRICommitmentUsage = RICost/TotalRICommitmentAvailable
   ) %>%
   select(
-    amount
+    Amount
     ,AvailableRICommitmentUsage
     ,AvailableRIHoursUsage
-    ,baseHourRate
+    ,BaseHourRate
     ,ConsumptionMeter
     ,Date
     ,InstanceId
-    ,purchasingSubscriptionName
-    ,quantity
+    ,PurchasingSubscriptionName
+    ,Quantity
     ,ReservationOrderId
     ,RICost
     ,RIHours
