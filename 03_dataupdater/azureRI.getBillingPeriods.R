@@ -1,21 +1,34 @@
 
 if(!exists("azureRI", mode="function")) source("azureRI.R")
 
-azureRI.getBillingPeriods <- function(obj = NULL, billingPeriod=NULL, ...) {
+azureRI.getBillingPeriods <- function(apiObj = NULL, billingPeriod=NULL, ...) {
   
-  if (is.null(obj)) {
-    obj <- azureRI.default
+  if (is.null(apiObj)) {
+    apiObj <- azureRI.default
   }
   
-  if (!is(obj, "azureRI")) {
+  if (!is(apiObj, "azureRI")) {
     stop("Expected AzureRI object")
   }
   
-  if (!is.null(obj$billingPeriods)) {
-    return(obj$billingPeriods)
+  # check if periods exist in obj Envrionment
+  if (exists("billingPeriods", envir = apiObj$env)) {
+    billingPeriods <- get("billingPeriods", envir = apiObj$env)
+  
+    if (!is.null(billingPeriods)) {
+      return(billingPeriods)
+    }
   }
+  
+  
+  #if (!is.null(apiObj$billingPeriods)) {
+  #  return(apiObj$billingPeriods)
+  #}
 
-  result <- azureRI.CallBillingApi(obj, version = "v2", query = "billingperiods" ) 
+  
+  
+  
+  result <- azureRI.CallBillingApi(apiObj, version = "v2", query = "billingperiods" ) 
   
   if (is.na(result)) {
     return(tibble())
@@ -34,6 +47,10 @@ azureRI.getBillingPeriods <- function(obj = NULL, billingPeriod=NULL, ...) {
       return(tibble())
     }
   )
+  
+  # set env
+  apiObj$env$billingPeriods <- result
+  
   
   return(result)
 }

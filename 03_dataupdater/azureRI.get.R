@@ -26,7 +26,7 @@ azureRI.get <- function(what, apiObj=NULL, billingPeriod = NULL, reload = FALSE,
     billingPeriod <- format(as.Date(format(Sys.Date(), "%Y-%m-01")) - 1, "%Y%m")
   }
   
-  
+  # Check if periods exist in environment
   
   # check if billingperiod is in acceptable limits
   periods <- azureRI.getBillingPeriods(apiObj)
