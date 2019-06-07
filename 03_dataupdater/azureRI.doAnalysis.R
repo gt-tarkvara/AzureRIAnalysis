@@ -195,7 +195,7 @@ riHoursWithRICosts <- riHoursWithRICosts_raw %>%
 }
 
 # === DevTestMapping
-
+if (F) {
 devTestMapping <- friendlyServiceNames %>%
     filter(MeterCategory == "Virtual Machines")
 
@@ -220,7 +220,7 @@ devTestMapping <- left_join(x=devTestMapping_B, y=devTestMapping , by=c("NameWit
   )
 
 rm(devTestMapping_B)
-
+}
 
 # === UsageDetailsWithEmptyRows
 vmDetails <- usageDetails %>%
