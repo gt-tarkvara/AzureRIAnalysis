@@ -34,6 +34,11 @@ if(!exists("azureRI.getBillingPeriods", mode="function")) source("./azureRI.getB
 if(!exists("azureRI.getReservationCharges", mode="function")) source("./azureRI.getReservationCharges.R")
 if(!exists("azureRI.getPriceList", mode="function")) source("./azureRI.getPriceList.R")
 if(!exists("azureRI.getUsageDetails", mode="function")) source("./azureRI.getUsageDetails.R")
+if(!exists("azureRI.getBillingData", mode="function")) source("./azureRI.getBillingData.R")
+if(!exists("azureRI.getRIHoursUtilization", mode="function")) source("./azureRI.getRIHoursUtilization.R")
+if(!exists("azureRI.getRIHoursWithRICosts_raw", mode="function")) source("./azureRI.getRIHoursWithRICosts_raw.R")
+if(!exists("azureRI.getRIHoursWithRICosts", mode="function")) source("./azureRI.getRIHoursWithRICosts.R")
+if(!exists("azureRI.getDevTestMapping", mode="function")) source("./azureRI.getDevTestMapping.R")
 
 # default azureRI object
 azureRI.default <- azureRI(Sys.getenv("AZURERI_ENROLLMENTNO"), Sys.getenv("AZURERI_BEARER"), Sys.getenv("AZURERI_MARGIN"), Sys.getenv("AZURERI_CACHEDIR"))

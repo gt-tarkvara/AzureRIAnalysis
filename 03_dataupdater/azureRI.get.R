@@ -27,11 +27,12 @@ azureRI.get <- function(what, apiObj=NULL, billingPeriod = NULL, reload = FALSE,
   }
   
   
+  
   # check if billingperiod is in acceptable limits
   periods <- azureRI.getBillingPeriods(apiObj)
   
-  if (!(billingPeriod %in% periods[,1])) {
-    warning("Invalid billing period specified", immediate. = TRUE)
+  if (!(billingPeriod %in% periods$billingPeriodId)) {
+    warning(paste0("Invalid billing period specified - ", billingPeriod) , immediate. = TRUE)
     return(tibble())
   }
   

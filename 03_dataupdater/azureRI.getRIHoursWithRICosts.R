@@ -3,7 +3,7 @@ azureRI.getRIHoursWithRICosts <- function(apiObj, billingPeriod, ...) {
     group_by(InstanceId, Date, SubscriptionGuid, ConsumptionMeter) %>%
     summarise(
       RIHours=sum(ConsumedQuantity, na.rm = T), 
-      RIRate=mean(usedRIRate,na.rm = T), 
+      RIRate=mean(UsedRIRate,na.rm = T), 
       RICost=sum(RICost, na.rm = T)
     )
 }
