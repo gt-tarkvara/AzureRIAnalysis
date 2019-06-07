@@ -20,14 +20,6 @@ azureRI.getBillingPeriods <- function(apiObj = NULL, billingPeriod=NULL, ...) {
     }
   }
   
-  
-  #if (!is.null(apiObj$billingPeriods)) {
-  #  return(apiObj$billingPeriods)
-  #}
-
-  
-  
-  
   result <- azureRI.CallBillingApi(apiObj, version = "v2", query = "billingperiods" ) 
   
   if (is.na(result)) {

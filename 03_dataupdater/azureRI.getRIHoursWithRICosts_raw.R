@@ -19,7 +19,6 @@ azureRI.getRIHoursWithRICosts_raw <- function(apiObj, billingPeriod, ...) {
       -ResourceRate,
       -ServiceInfo1,
       -ServiceInfo2,
-      -SubscriptionName,
       -Tags,
       -UnitOfMeasure,
       -ResourceGuid,

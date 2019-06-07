@@ -71,6 +71,9 @@ azureRI.get <- function(what, apiObj=NULL, billingPeriod = NULL, reload = FALSE,
     } else {
       
       # look in database
+      if (!is.null(apiObj$con) && dbIsValid(apiObj$con)) {
+         
+      }
       
       # not found, 
       
@@ -82,17 +85,4 @@ azureRI.get <- function(what, apiObj=NULL, billingPeriod = NULL, reload = FALSE,
     }
     return(ret)
   }
-  
-  if (F) {
-    
-    # check if database connectivity exists
-    # Not all function need to check database. So implementation should be left to specific function?
-    
-    # Now check if we have database connection available
-    if (!is.null(apiObj$con) && dbIsValid(apiObj$con)) {
-      
-    }
-  }
-  
-  
 }

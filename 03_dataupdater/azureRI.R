@@ -7,7 +7,7 @@ library(lubridate)
 
 # TODO: make this object reference object so its reference can be passed around
 
-azureRI <- function(enrollmentno, bearer, margin=1.0, cachedir = tempdir()) {
+azureRI <- function(enrollmentno, bearer, margin=1.0, cachedir = tempdir(), con = NULL) {
   
   if (is.na(as.numeric(margin))) {
     warning(paste0("Margin ", margin, " is not a number!"),appendLF = T, immediate. = T )
@@ -16,10 +16,22 @@ azureRI <- function(enrollmentno, bearer, margin=1.0, cachedir = tempdir()) {
     margin <- as.double(margin)
   }
   
-  value <- list(enrollmentNumber = enrollmentno, bearer = bearer, margin=as.numeric(margin), cachedir = cachedir, env = new.env(parent = emptyenv()))
+  value <- list(
+    enrollmentNumber = enrollmentno, 
+    bearer = bearer, 
+    margin=as.numeric(margin), 
+    cachedir = cachedir, 
+    env = new.env(parent = emptyenv()),
+    sqlCache = list(
+      "BillingData" = c("Date", "SubscriptionName", "Product", "PartNumber", "InstanceId"),
+      "RIHoursUtilization" = c("Date")
+    )
+    
+    )
   attr(value, "class") <- "azureRI"
   
   # register db cacheable classes, along with key definitions
+  
   
   value
 }
@@ -42,7 +54,7 @@ if(!exists("azureRI.getDevTestMapping", mode="function")) source("./azureRI.getD
 
 # default azureRI object
 azureRI.default <- azureRI(Sys.getenv("AZURERI_ENROLLMENTNO"), Sys.getenv("AZURERI_BEARER"), Sys.getenv("AZURERI_MARGIN"), Sys.getenv("AZURERI_CACHEDIR"))
-azureRI.default$billingPeriods <- azureRI.getBillingPeriods()
+#azureRI.default$billingPeriods <- azureRI.getBillingPeriods()
 
 
 
