@@ -9,9 +9,6 @@
 
 azureRI.get <- function(what, apiObj=NULL, billingPeriod = NULL, reload = FALSE, row.names = "BusinessKey", ...) {
 
-  # Should we cache things for apiObj?  
-  # Optimize later.. 
-  
   # Input check
   if (is.null(apiObj)) {
     apiObj <- azureRI.default
@@ -52,6 +49,9 @@ azureRI.get <- function(what, apiObj=NULL, billingPeriod = NULL, reload = FALSE,
   
   #cat(paste(list(...)))
   ret <- NULL
+  
+  varname <- paste0(what, billingPeriod)
+  
   # if reload, then do not attempt to load from db/environment but rather reload from scratch
   if (reload) {
   
@@ -59,15 +59,17 @@ azureRI.get <- function(what, apiObj=NULL, billingPeriod = NULL, reload = FALSE,
     ret <- do.call(fname, list(apiObj=apiObj, billingPeriod=billingPeriod, ... ))
     if (!is.null(ret) && length(ret) > 0 && is_empty(ret)) {
       
-      assign(what, ret, pos = apiObj$env, envir = apiObj$env)
+      assign(varname, ret, pos = apiObj$env, envir = apiObj$env)
     }
     
     return(ret)
   } else {
     
+    
+    
     # if in environment cache
-    if (exists(what, envir = apiObj$env)) {
-      ret <- get(what, envir = apiObj$env)
+    if (exists(varname, envir = apiObj$env)) {
+      ret <- get(varname, envir = apiObj$env)
     } else {
       
       # look in database
@@ -79,7 +81,7 @@ azureRI.get <- function(what, apiObj=NULL, billingPeriod = NULL, reload = FALSE,
       
       ret <- do.call(fname, list(apiObj=apiObj, billingPeriod=billingPeriod, ... ))
       
-      assign(what, ret, pos = apiObj$env, envir = apiObj$env)
+      assign(varname, ret, pos = apiObj$env, envir = apiObj$env)
       
       
     }

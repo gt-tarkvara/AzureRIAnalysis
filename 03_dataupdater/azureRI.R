@@ -23,9 +23,10 @@ azureRI <- function(enrollmentno, bearer, margin=1.0, cachedir = tempdir(), con 
     cachedir = cachedir, 
     env = new.env(parent = emptyenv()),
     sqlCache = list(
-      "BillingData" = c("Date", "SubscriptionName", "Product", "PartNumber", "InstanceId"),
-      "RIHoursUtilization" = c("Date")
-    )
+      "BillingData" = c("Date", "SubscriptionGuid", "Product", "PartNumber", "InstanceId"),
+      "RIHoursUtilization" = c("Date","SubscriptionGuid", "ReservationOrderId", "InstanceId")
+      ),
+    con = con
     
     )
   attr(value, "class") <- "azureRI"
@@ -38,7 +39,6 @@ azureRI <- function(enrollmentno, bearer, margin=1.0, cachedir = tempdir(), con 
 
 if(!exists("azureRI.get", mode="function")) source("./azureRI.get.R")
 if(!exists("azureRI.getMargin", mode="function")) source("./azureRI.getMargin.R")
-
 if(!exists("azureRI.CallBillingApi", mode="function")) source("./azureRI.CallBillingApi.R")
 if(!exists("azureRI.getInstanceSizeFlexibility", mode="function")) source("./azureRI.getInstanceSizeFlexibility.R")
 if(!exists("azureRI.getFriendlyServiceNames", mode="function")) source("./azureRI.getFriendlyServiceNames.R")
@@ -51,6 +51,8 @@ if(!exists("azureRI.getRIHoursUtilization", mode="function")) source("./azureRI.
 if(!exists("azureRI.getRIHoursWithRICosts_raw", mode="function")) source("./azureRI.getRIHoursWithRICosts_raw.R")
 if(!exists("azureRI.getRIHoursWithRICosts", mode="function")) source("./azureRI.getRIHoursWithRICosts.R")
 if(!exists("azureRI.getDevTestMapping", mode="function")) source("./azureRI.getDevTestMapping.R")
+
+if(!exists("azureRI.set", mode="function")) source("./azureRI.set.R")
 
 # default azureRI object
 azureRI.default <- azureRI(Sys.getenv("AZURERI_ENROLLMENTNO"), Sys.getenv("AZURERI_BEARER"), Sys.getenv("AZURERI_MARGIN"), Sys.getenv("AZURERI_CACHEDIR"))
