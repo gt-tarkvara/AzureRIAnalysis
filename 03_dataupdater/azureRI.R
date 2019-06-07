@@ -4,6 +4,9 @@ library(tidyverse)
 library(jsonlite)
 library(rvest)
 library(lubridate)
+library(DBI)
+library(odbc)
+
 
 # TODO: make this object reference object so its reference can be passed around
 
@@ -24,7 +27,7 @@ azureRI <- function(enrollmentno, bearer, margin=1.0, cachedir = tempdir(), con 
     env = new.env(parent = emptyenv()),
     sqlCache = list(
       "BillingData" = c("Date", "SubscriptionGuid", "Product", "PartNumber", "InstanceId"),
-      "RIHoursUtilization" = c("Date","SubscriptionGuid", "ReservationOrderId", "InstanceId")
+      "RIHoursUtilization" = c("Date","SubscriptionGuid", "ReservationOrderId", "InstanceId", "ConsumptionMeter")
       ),
     con = con
     
@@ -54,8 +57,22 @@ if(!exists("azureRI.getDevTestMapping", mode="function")) source("./azureRI.getD
 
 if(!exists("azureRI.set", mode="function")) source("./azureRI.set.R")
 
+connstr <- Sys.getenv("AZURERI_CONNECTIONSTRING")
+
+con <- DBI::dbConnect(
+  odbc()
+  , Driver = "{ODBC Driver 17 for SQL Server}"
+  , .connection_string = connstr)
+
+
 # default azureRI object
-azureRI.default <- azureRI(Sys.getenv("AZURERI_ENROLLMENTNO"), Sys.getenv("AZURERI_BEARER"), Sys.getenv("AZURERI_MARGIN"), Sys.getenv("AZURERI_CACHEDIR"))
+azureRI.default <- azureRI(Sys.getenv("AZURERI_ENROLLMENTNO"), 
+                           Sys.getenv("AZURERI_BEARER"), 
+                           Sys.getenv("AZURERI_MARGIN"), 
+                           Sys.getenv("AZURERI_CACHEDIR"),
+                           con = con
+                           )
+
 #azureRI.default$billingPeriods <- azureRI.getBillingPeriods()
 
 

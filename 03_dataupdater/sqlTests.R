@@ -59,10 +59,10 @@ dbExistsTable(con, "mtcarsx")
 
 #Add table with primary key "BusinessKey"
 dbWriteTable(con, "mtcarsx", as.data.frame(bb)[0,], append=T, row.names="BusinessKey" )
-dbBegin(con)
+#dbBegin(con)
 rs <- dbExecute(con, "alter table mtcarsx alter column BusinessKey varchar(255) not null")
 rs <- dbExecute(con, "alter table mtcarsx add constraint pk_mtcarsx primary key clustered (BusinessKey)")
-dbCommit(con)
+#dbCommit(con)
 dbWriteTable(con, "mtcarsx", as.data.frame(bb), append=T, row.names="BusinessKey" )
 
 # delete some rows
