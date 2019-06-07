@@ -32,13 +32,19 @@ azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL, ...) {
   
   instanceNames <- usageDetails %>%
     filter(MeterCategory == "Virtual Machines") %>%
-    group_by(SubscriptionGuid, Date, InstanceId) %>%
+    group_by(SubscriptionGuid, SubscriptionName, Date, InstanceId) %>%
     count() %>%
     select(
       -n
     )
   
-  instanceNames <- left_join(x=instanceNames, y=vmDetails, by=c("SubscriptionGuid"="SubscriptionGuid", "InstanceId"="InstanceId"))
+  instanceNames <- left_join(x=instanceNames, y=vmDetails, by=c("SubscriptionGuid"="SubscriptionGuid", "InstanceId"="InstanceId")) %>%
+    rename(SubscriptionName = SubscriptionName.x) %>%
+    select(
+      -SubscriptionName.y
+    )
+  
+  
   
   usageDetailsWithEmptyRows <- bind_rows(usageDetails, instanceNames) %>%
     rename(ExtendedCost = Cost)
@@ -51,7 +57,7 @@ azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL, ...) {
   
   # === BillingData
   billingData <- usageDetailsWithEmptyRows %>%
-    group_by(Date, InstanceId, MeterId, SubscriptionName, Product, MeterSubCategory, MeterCategory, UnitOfMeasure, PartNumber,
+    group_by(Date, InstanceId, MeterId, SubscriptionGuid, SubscriptionName, Product, MeterSubCategory, MeterCategory, UnitOfMeasure, PartNumber,
              ConversionFactor
     ) %>%
     summarise(
@@ -63,7 +69,15 @@ azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL, ...) {
       EffectiveRate = ifelse(is.na(EffectiveRate), 0, EffectiveRate)
     )
   
-  billingData <- left_join(x=billingData, y=riHoursWithRICosts, by=c("Date"="Date", "InstanceId"="InstanceId", "MeterId"="ConsumptionMeter")) 
+  billingData <- left_join(x=billingData, y=riHoursWithRICosts, by=c("Date"="Date", "InstanceId"="InstanceId", "MeterId"="ConsumptionMeter")) %>%
+    select(
+      -SubscriptionName.y,
+      -SubscriptionGuid.y,
+    ) %>%
+    rename(
+      SubscriptionGuid = SubscriptionGuid.x,
+      SubscriptionName = SubscriptionName.x
+    )
   
   billingData <- left_join(x=billingData, y=priceSheet, by=c("PartNumber"="PartNumber")) %>%
     mutate(
