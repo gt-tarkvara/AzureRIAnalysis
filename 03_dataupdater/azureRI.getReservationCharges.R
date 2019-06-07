@@ -1,7 +1,7 @@
 
 if(!exists("azureRI", mode="function")) source("azureRI.R")
 
-azureRI.getReservationCharges <- function(obj = NULL, startdate = Sys.Date() - 3*365, enddate = Sys.Date(), ...) {
+azureRI.getReservationCharges <- function(apiObj = NULL, startdate = Sys.Date() - 3*365, enddate = Sys.Date(), ...) {
   
   
   temp_dir <- apiObj$cachedir
@@ -25,7 +25,7 @@ azureRI.getReservationCharges <- function(obj = NULL, startdate = Sys.Date() - 3
   
   
   #str(result)
-  margin <- obj$margin
+  margin <- apiObj$margin
   
   result <- tryCatch(
     {
@@ -55,8 +55,30 @@ azureRI.getReservationCharges <- function(obj = NULL, startdate = Sys.Date() - 3
     ) %>%
     filter(
       eventType == "Purchase"
+    ) %>% 
+    select( #Standardizing output
+      PurchasingEnrollment=purchasingEnrollment,
+      ArmSkuName=armSkuName,
+      Term=term,
+      Region=region,
+      PurchasingSubscriptionGuid=purchasingSubscriptionGuid,
+      PurchasingSubscriptionName=purchasingSubscriptionName,
+      AccountName=accountName,
+      AccountOwnerEmail=accountOwnerEmail,
+      DepartmentName=departmentName,
+      CostCenter=costCenter,
+      CurrentEnrollment=currentEnrollment,
+      EventDate=eventDate,
+      ReservationOrderId=reservationOrderId,
+      Description=description,
+      EventType=eventType,
+      Quantity=quantity,
+      Amount=amount,
+      Currency=currency,
+      ReservationOrderName=reservationOrderName,
+      BaseHourRate=baseHourRate,
+      Amount=amount
     )
-  
   
   return(result)
 }
