@@ -3,21 +3,27 @@ if(!exists("azureRI", mode="function")) source("azureRI.R")
 
 azureRI.getReservationCharges <- function(obj = NULL, startdate = Sys.Date() - 3*365, enddate = Sys.Date(), ...) {
   
-  if (is.null(obj)) {
-    obj <- azureRI.default
-  }
   
-  if (!is(obj, "azureRI")) {
-    stop("Expected AzureRI object")
+  temp_dir <- apiObj$cachedir
+  
+  if (!dir.exists(temp_dir)) {
+    dir.create(temp_dir, recursive = T)
   }
   
   query <- paste0("reservationcharges?startDate=", startdate ,"&endDate=", enddate)
   
-  result <- azureRI.CallBillingApi(obj, version = "v3", query = query )
+  filepath <- paste(temp_dir, paste0("reservationCharges-", startdate, "-", enddate, ".json"), sep = .Platform$file.sep)
+  
+  #print(filepath)
+  
+  result <- azureRI.CallBillingApi(apiObj, version = "v3", query = query, filepath = filepath, reload = FALSE )
+  
   
   if (is.na(result)) {
     return(tibble())
   }
+  
+  
   #str(result)
   margin <- obj$margin
   
