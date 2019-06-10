@@ -40,12 +40,13 @@ azureRI.getPriceList <- function(apiObj, billingPeriod, ...) {
       UnitPrice = unitPrice * margin
     ) %>%
     select(
+      UnitsOfMeasurePriceList = unitOfMeasure,
       BillingPeriod = billingPeriodId,
       IncludedQuantity = includedQuantity,
       PartNumber = partNumber,
       UnitPrice,
       CurrencyCode = currencyCode
-    )
+    ) %>% as.tibble()
   
   return(result)
 }

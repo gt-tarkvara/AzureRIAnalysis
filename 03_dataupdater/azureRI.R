@@ -27,7 +27,10 @@ azureRI <- function(enrollmentno, bearer, margin=1.0, cachedir = tempdir(), con 
     env = new.env(parent = emptyenv()),
     sqlCache = list(
       "BillingData" = c("Date", "SubscriptionGuid", "Product", "PartNumber", "InstanceId"),
-      "RIHoursUtilization" = c("Date","SubscriptionGuid", "ReservationOrderId", "InstanceId", "ConsumptionMeter")
+      "RIHoursUtilization" = c("Date","SubscriptionGuid", "ReservationOrderId", "InstanceId", "ConsumptionMeter"),
+      "FriendlyServiceNames" = c("BillingPeriod","Name", "ConsumptionPartNumber"),
+      "PriceList" = c("BillingPeriod", "PartNumber", "UnitsOfMeasurePriceList"), # Hash, there ARE pricelists with duplicate part no but separate prices, distincted by UnitofMeasure
+      "InstanceSizeFlexibility" = c("BillingPeriod", "Size")
       ),
     con = con
     
