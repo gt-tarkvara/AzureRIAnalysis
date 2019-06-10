@@ -73,13 +73,22 @@ azureRI.get <- function(what, apiObj=NULL, billingPeriod = NULL, reload = FALSE,
     } else {
       
       # look in database
-      if (!is.null(apiObj$con) && dbIsValid(apiObj$con)) {
+      if (!is.null(apiObj$con) && dbIsValid(apiObj$con) && dbExistsTable(apiObj$con, dbQuoteIdentifier(apiObj$con,c(what)) )) {
          
+         sql <- paste0("select * from ", dbQuoteIdentifier(apiObj$con,c(what)), " where BillingPeriod = ", 
+                              dbQuoteString(apiObj$con, billingPeriod))
+         warning(paste0("Executing ", sql))
+         ret <- dbGetQuery(apiObj$con, sql) %>% as.tibble() %>% select(-!!row.names) 
+         if (length(ret) == 0) {
+           ret <- do.call(fname, list(apiObj=apiObj, billingPeriod=billingPeriod, ... ))
+         }
+         
+      } else {
+      
+        # not found, 
+      
+        ret <- do.call(fname, list(apiObj=apiObj, billingPeriod=billingPeriod, ... ))
       }
-      
-      # not found, 
-      
-      ret <- do.call(fname, list(apiObj=apiObj, billingPeriod=billingPeriod, ... ))
       
       assign(varname, ret, pos = apiObj$env, envir = apiObj$env)
       
