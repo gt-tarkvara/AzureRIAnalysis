@@ -28,7 +28,7 @@ azureRI.getBillingPeriods <- function(apiObj = NULL, billingPeriod=NULL, ...) {
   
   result <- tryCatch(
     {
-      as.tibble(fromJSON(result))
+      as_tibble(fromJSON(result))
     },
     error = function(cond) {
       warning(cond, immediate. = TRUE)

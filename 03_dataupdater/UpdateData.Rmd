@@ -1,0 +1,71 @@
+---
+title: "RI Calculation Result"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(stringr)
+library(knitr)
+knitr::opts_chunk$set(echo = TRUE, results="hide")
+
+```
+
+## Parameters
+
+```{r echo=F, results='asis'}
+env <- Sys.getenv()
+
+#library(knitr)
+list <- as.list(env[grep("^AZURERI_", names(env))])
+# replace sensitive values
+list$AZURERI_BEARER <- paste0(substring(list$AZURERI_BEARER, 1, 10), '.. ..', substring(list$AZURERI_BEARER, first=nchar(list$AZURERI_BEARER)-10))
+
+list$AZURERI_CONNECTIONSTRING <- 
+  str_replace(
+    str_replace(list$AZURERI_CONNECTIONSTRING, "Uid=([^;]){1}([^;]*){0,1};", "Uid=\\1*******;"),
+    "Pwd=([^;]){1}([^;]*){0,1};", "Pwd=********;")
+
+for (name in names(list)) {
+    cat("- **", name, '** :', paste(' *', list[[name]], '* \n', sep = ""), sep = "")
+}
+```
+
+## Code load
+```{r echo=T, results="hide", message=FALSE}
+source("azureRI.R")
+
+```
+## Data load
+```{r echo=T, results='markup'}
+billingData <- azureRI.get(what="BillingData", apiObj = azureRI.default, row.names = "BusinessKey")
+riHoursUtilization <- azureRI.get(what="RIHoursUtilization", apiObj = azureRI.default, row.names = "BusinessKey")
+```
+## Basic RI Cost checks
+```{r echo=T, results='asis'}
+bdSum <- billingData %>% 
+  group_by(SubscriptionName) %>% 
+  summarize(
+    RIHours = sum(RIHoursUsed, na.rm = T),
+    RICost = sum(CostUsageFromRI, na.rm = T),
+  )
+
+riHoursSum <- riHoursUtilization %>% 
+  group_by(SubscriptionName) %>% 
+  summarize(
+    RIHours = sum(RIHours, na.rm = T),
+    RICost = sum(RICost, na.rm = T),
+  )
+```
+
+### Billing data RI costs
+
+```{r echo=T, results='asis'}
+kable(bdSum)
+```
+
+### RIHoursUtilization data RI costs
+
+```{r echo=T, results='asis'}
+kable(riHoursSum)
+```
+
