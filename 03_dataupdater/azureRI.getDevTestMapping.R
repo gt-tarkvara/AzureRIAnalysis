@@ -1,13 +1,14 @@
-azureRI.getDevTestMapping <- function(apiObj, billingPeriod, ...) {
+azureRI.getDevTestMapping <- function(apiObj, billingPeriod, reload=F, ...) {
   
   # Trouble with those is that they get copied... Should get just a reference... Optimize !LATER!
-  priceSheet <- azureRI.get("PriceList", obj = apiObj, billingPeriod = billingPeriod)
-  friendlyServiceNames <- azureRI.get("FriendlyServiceNames", apiObj = apiObj, billingPeriod = billingPeriod)
+  priceSheet <- azureRI.get("PriceList", obj = apiObj, billingPeriod = billingPeriod, reload=reload, ...)
+  friendlyServiceNames <- azureRI.get("FriendlyServiceNames", apiObj = apiObj, billingPeriod = billingPeriod, reload=reload, ...)
   
   devTestMapping <- friendlyServiceNames %>%
     filter(MeterCategory == "Virtual Machines")
   
   devTestMapping <- left_join(x = devTestMapping, y = priceSheet, by = c("ConsumptionPartNumber" = "PartNumber"))
+  
   
   devTestMapping_B <- devTestMapping %>%
     mutate(NameWithoutDevTest = str_replace(Name, "Dev/Test - ","")) %>%
@@ -15,16 +16,19 @@ azureRI.getDevTestMapping <- function(apiObj, billingPeriod, ...) {
     select(
       NameWithoutDevTest,
       DevTestPrice = UnitPrice,
-      DevTestPartNumber = ConsumptionPartNumber
+      DevTestPartNumber = ConsumptionPartNumber,
+      DevTestMeterId = MeterId
     )
   
   devTestMapping <- left_join(x=devTestMapping_B, y=devTestMapping , by=c("NameWithoutDevTest" = "Name")) %>%
     select(
       Name = NameWithoutDevTest,
       FullPricePartNumber = ConsumptionPartNumber,
+      FullPriceMeterId = MeterId,
       FullPrice = UnitPrice,
       DevTestPartNumber,
-      DevTestPrice
+      DevTestPrice,
+      DevTestMeterId
     )
   
   rm(devTestMapping_B)
