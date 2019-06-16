@@ -13,23 +13,96 @@ azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL, ...) {
   
   usageDetails <- azureRI.get("UsageDetails", apiObj = apiObj, billingPeriod = billingPeriod, ...)  
   riHoursWithRICosts <- azureRI.get("RIHoursWithRICosts", apiObj = apiObj, billingPeriod = billingPeriod, ...)
-  priceSheet <- azureRI.get("PriceList", apiObj = apiObj, billingPeriod = billingPeriod, ...)
+  priceSheet <- azureRI.get("PriceList", apiObj = apiObj, billingPeriod = billingPeriod, ...) 
   devTestMapping <- azureRI.get("DevTestMapping", apiObj = apiObj, billingPeriod = billingPeriod, ...)
+  friendlyServiceNames <- azureRI.get("FriendlyServiceNames", apiObj = apiObj, billingPeriod = billingPeriod, ...)
   
-  vmDetails <- usageDetails %>%
+  
+  # Augment usageDetails with Hack
+  usageDetails <- usageDetails %>%
+    mutate( RILinkingMeterId = ifelse(
+      is.na(ConsumptionMeter),
+      ifelse(
+        str_detect(Product, " Windows"),
+        NA,
+        MeterId),
+      ConsumptionMeter
+    ))
+  
+  
+  # All instance names
+  instanceNamesAll <- usageDetails %>%
     filter(MeterCategory == "Virtual Machines") %>%
-    filter(
-      Product != "Reservation-Base VM" & Product != "VM RI - Compute" 
-    ) %>%
-    group_by(InstanceId, MeterId, SubscriptionName, Product, MeterSubCategory, MeterCategory, UnitOfMeasure, PartNumber, 
-             ConversionFactor, 
-             SubscriptionGuid) %>%
+    group_by(SubscriptionGuid, SubscriptionName, InstanceId) %>%
     count() %>%
     select(
       -n
     )
   
   
+  #===========================================================
+  # Construct vmDetails for cases there are only RI usage
+  #===========================================================
+  
+  # Regular vm compute usage
+  instanceNamesWithoutRI <- usageDetails %>%
+    filter(MeterCategory == "Virtual Machines") %>%
+    filter(
+      (Product != "Reservation-Base VM" & Product != "VM RI - Compute") 
+    ) %>%
+    group_by(SubscriptionGuid, SubscriptionName, InstanceId) %>%
+    count() %>%
+    select(
+      -n
+    )
+  
+  # Lookup subcategory data from all usage details - this information is not available in other metadata tables :(
+  meterSubCategoryLookup <- usageDetails %>% 
+    group_by(MeterCategory, MeterSubCategory, Product, PartNumber) %>% 
+    count() %>%
+    select( -n )
+  
+  # filter out those instances which have only RI usage
+  instanceNamesOnlyRI <- anti_join(x=instanceNamesAll, y=instanceNamesWithoutRI, by=c("SubscriptionGuid"="SubscriptionGuid", "InstanceId"="InstanceId"))
+  
+  # construct data set
+  vmDetailsRIOnly <- left_join(x=instanceNamesOnlyRI, y=usageDetails, 
+                               by=c("SubscriptionGuid"="SubscriptionGuid", 
+                                    "SubscriptionName"="SubscriptionName", 
+                                    "InstanceId"="InstanceId")) %>%
+    filter(MeterCategory=="Virtual Machines") %>% 
+    left_join(y = priceSheet, by=c("ConsumptionMeter"="MeterId")) %>%
+    left_join(y = friendlyServiceNames, by=c("PartNumber.y"="ConsumptionPartNumber")) %>% 
+    left_join(y = meterSubCategoryLookup, by=c("PartNumber.y"="PartNumber")) %>%
+    mutate(
+      ConsumedUnits = 0,
+      ConversionFactor = as.numeric(ConversionFactor.y),
+      MeterId = ConsumptionMeter
+    ) %>%
+    select(
+      SubscriptionGuid,
+      SubscriptionName,
+      Date,
+      InstanceId,
+      Cost,
+      MeterId,
+      RILinkingMeterId = ConsumptionMeter,
+      MeterCategory = MeterCategory.x,
+      MeterSubCategory = MeterSubCategory.y,
+      PartNumber = PartNumber.y,
+      Product = Name.y,
+      UnitOfMeasure = UnitsOfMeasurePriceList,
+      ConversionFactor,
+      EffectiveRate = UnitPrice,
+      ConsumedUnits
+    ) 
+  
+  #===========================================================
+  # Construct vmDetails for cases there are both VM regular 
+  # and RI usage
+  #===========================================================
+  
+  # instance names by subscription and date
   instanceNames <- usageDetails %>%
     filter(MeterCategory == "Virtual Machines") %>%
     group_by(SubscriptionGuid, SubscriptionName, Date, InstanceId) %>%
@@ -38,27 +111,42 @@ azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL, ...) {
       -n
     )
   
-  instanceNames <- left_join(x=instanceNames, y=vmDetails, by=c("SubscriptionGuid"="SubscriptionGuid", "InstanceId"="InstanceId")) %>%
-    rename(SubscriptionName = SubscriptionName.x) %>%
+  # For every VM, there should be at least 1 row per month..
+  vmDetails <- usageDetails %>%
+    filter(MeterCategory == "Virtual Machines") %>%
+    filter(
+      (Product != "Reservation-Base VM" & Product != "VM RI - Compute") 
+    ) %>%
+    group_by(InstanceId, MeterId, SubscriptionName, Product, MeterSubCategory, MeterCategory, UnitOfMeasure, PartNumber, 
+             ConversionFactor, 
+             SubscriptionGuid, RILinkingMeterId) %>%
+    count() %>%
     select(
-      -SubscriptionName.y
+      -n
+    )
+  
+  # Add date part
+  vmDetails2 <- instanceNames %>% 
+    left_join(vmDetails, 
+              by=c("SubscriptionName"="SubscriptionName",
+                   "SubscriptionGuid"="SubscriptionGuid",
+                   "InstanceId"="InstanceId")) %>%
+    filter(!is.na(MeterId))
+  
+  # combine vm data
+  vmDetails3 <- bind_rows(vmDetails2, vmDetailsRIOnly) 
+  
+  # combine vmdata with usage info
+  usageDetailsWithEmptyRows <- bind_rows(usageDetails, vmDetails3) %>%
+    rename(ExtendedCost = Cost) %>% filter(
+      Product != "Reservation-Base VM" & Product != "VM RI - Compute" &
+        MeterCategory != "Virtual Machines Licenses" # Huh, this caused double join. 
     )
   
   
-  
-  usageDetailsWithEmptyRows <- bind_rows(usageDetails, instanceNames) %>%
-    rename(ExtendedCost = Cost)
-  
-  rm(usageDetails)
-  rm(instanceNames)
-  rm(vmDetails)
-  
-  
-  
-  # === BillingData
   billingData <- usageDetailsWithEmptyRows %>%
     group_by(Date, InstanceId, MeterId, SubscriptionGuid, SubscriptionName, Product, MeterSubCategory, MeterCategory, UnitOfMeasure, PartNumber,
-             ConversionFactor
+             ConversionFactor, RILinkingMeterId
     ) %>%
     summarise(
       ConsumedUnits = sum(ConsumedUnits, na.rm = T),
@@ -67,17 +155,16 @@ azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL, ...) {
     ) %>%
     mutate(
       EffectiveRate = ifelse(is.na(EffectiveRate), 0, EffectiveRate)
-    )
-  
-  billingData <- left_join(x=billingData, y=riHoursWithRICosts, by=c("Date"="Date", "InstanceId"="InstanceId", "MeterId"="ConsumptionMeter")) %>%
+    ) %>% 
+    left_join(y=riHoursWithRICosts, 
+              by=c("SubscriptionGuid"="SubscriptionGuid", "Date"="Date", "InstanceId"="InstanceId", "RILinkingMeterId"="ConsumptionMeter")) %>%
     select(
-      -SubscriptionName.y,
-      -SubscriptionGuid.y,
+      -SubscriptionName.y
     ) %>%
     rename(
-      SubscriptionGuid = SubscriptionGuid.x,
       SubscriptionName = SubscriptionName.x
     )
+  
   
   billingData <- left_join(x=billingData, y=priceSheet, by=c("PartNumber"="PartNumber")) %>%
     mutate(
