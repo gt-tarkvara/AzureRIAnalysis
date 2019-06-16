@@ -6,6 +6,8 @@ library(rvest)
 library(lubridate)
 library(DBI)
 library(odbc)
+library(rlang)
+library(digest)
 
 
 # TODO: make this object reference object so its reference can be passed around
