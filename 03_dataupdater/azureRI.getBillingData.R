@@ -173,9 +173,13 @@ azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL, ...) {
       CostSavingsFromRI = if_else(is.na(ConsumedUnitsCoveredByRIFullPrice-RICost),0, ConsumedUnitsCoveredByRIFullPrice-RICost)
     ) %>%
     rename(
+      MeterId = MeterId.x,
       CostUsageFromRI = RICost,
       RIHourRate = RIRate,
       RIHoursUsed = RIHours
+    ) %>%
+    select(
+      -MeterId.y
     )
   
   billingData <- left_join(x=billingData, y=devTestMapping, by=c("PartNumber"="DevTestPartNumber")) %>%
