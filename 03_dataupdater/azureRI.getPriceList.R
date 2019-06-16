@@ -45,7 +45,8 @@ azureRI.getPriceList <- function(apiObj, billingPeriod, ...) {
       IncludedQuantity = includedQuantity,
       PartNumber = partNumber,
       UnitPrice,
-      CurrencyCode = currencyCode
+      CurrencyCode = currencyCode,
+      MeterId = meterId
     ) %>% as.tibble()
   
   return(result)
