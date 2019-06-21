@@ -102,6 +102,22 @@ azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL, ...) {
   # and RI usage
   #===========================================================
   
+  # RILinkingMeterId for RI compute metering. 
+  instanceId_Name_MeterId_Date <- usageDetails %>%
+    filter(MeterCategory == "Virtual Machines") %>%
+    filter(
+      (Product == "Reservation-Base VM" | Product == "VM RI - Compute") 
+    ) %>%
+    group_by(SubscriptionGuid, SubscriptionName, InstanceId, Date, RILinkingMeterId) %>%
+    count() %>%
+    select(
+      -n
+    ) %>%
+    filter(
+      !is.na(RILinkingMeterId)
+    ) 
+  
+  
   # instance names by subscription and date
   instanceNames <- usageDetails %>%
     filter(MeterCategory == "Virtual Machines") %>%
@@ -109,7 +125,14 @@ azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL, ...) {
     count() %>%
     select(
       -n
-    )
+    ) %>%
+    # Augment by RILinkingMeterId from RI meters, it is used when RILinkingMeterId for VM is empty.
+    left_join(y = instanceId_Name_MeterId_Date, by=c(
+      "SubscriptionGuid"="SubscriptionGuid", 
+      "SubscriptionName"="SubscriptionName", 
+      "Date"="Date", 
+      "InstanceId"="InstanceId")) %>%
+    rename(RIMeterLinkingIdFromRIUsage=RILinkingMeterId)
   
   # For every VM, there should be at least 1 row per month..
   vmDetails <- usageDetails %>%
@@ -131,7 +154,13 @@ azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL, ...) {
               by=c("SubscriptionName"="SubscriptionName",
                    "SubscriptionGuid"="SubscriptionGuid",
                    "InstanceId"="InstanceId")) %>%
-    filter(!is.na(MeterId))
+    filter(!is.na(MeterId)) %>%
+    mutate(
+      RILinkingMeterId = ifelse(is.na(RILinkingMeterId), RIMeterLinkingIdFromRIUsage, RILinkingMeterId)
+    ) %>%
+    select(
+      -RIMeterLinkingIdFromRIUsage
+    )
   
   # combine vm data
   vmDetails3 <- bind_rows(vmDetails2, vmDetailsRIOnly) 
