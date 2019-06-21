@@ -37,8 +37,11 @@ source("azureRI.R")
 ```
 ## Data load
 ```{r echo=T, results='markup'}
-billingData <- azureRI.get(what="BillingData", apiObj = azureRI.default, row.names = "BusinessKey")
-riHoursUtilization <- azureRI.get(what="RIHoursUtilization", apiObj = azureRI.default, row.names = "BusinessKey")
+billingData <- azureRI.get(what="BillingData", apiObj = azureRI.default, row.names = "BusinessKey", reload=T)
+riHoursUtilization <- azureRI.get(what="RIHoursUtilization", apiObj = azureRI.default, row.names = "BusinessKey", reload=T)
+riHoursWithRICosts <- azureRI.get("RIHoursWithRICosts", reload=T) 
+billingData
+riHoursUtilization
 ```
 ## Basic RI Cost checks
 ```{r echo=T, results='asis'}
@@ -55,17 +58,50 @@ riHoursSum <- riHoursUtilization %>%
     RIHours = sum(RIHours, na.rm = T),
     RICost = sum(RICost, na.rm = T),
   )
+
+#Diff
+diff <- bdSum %>% full_join(y = riHoursSum, 
+   by=c("SubscriptionName"="SubscriptionName")) %>%
+   mutate(
+     HoursDiff = RIHours.x - RIHours.y,
+     CostsDiff = RICost.x - RICost.y
+   )
+
+kable(diff)
 ```
 
-### Billing data RI costs
 
-```{r echo=T, results='asis'}
-kable(bdSum)
+### Detailed differences
+
+```{r echo=TRUE, results='asis'}
+# Summarize and include instance ID
+bdSum2 <- billingData %>% 
+  filter(MeterCategory == "Virtual Machines") %>%
+  mutate(InstanceIdShort = basename(InstanceId)) %>%
+  group_by(SubscriptionName, InstanceIdShort) %>% 
+  summarize(
+    RIHours = sum(RIHoursUsed, na.rm = T),
+    RICost = sum(CostUsageFromRI, na.rm = T),
+  )
+
+riHoursSum2 <- riHoursWithRICosts %>%
+  mutate(InstanceIdShort = basename(InstanceId)) %>%
+  group_by(SubscriptionName, InstanceIdShort) %>% 
+  summarize(
+    RIHours = sum(RIHours, na.rm = T),
+    RICost = sum(RICost, na.rm = T),
+  )
+
+
+#Diff2
+diff2 <- bdSum2 %>% full_join(y = riHoursSum2, 
+                            by=c("SubscriptionName"="SubscriptionName", "InstanceIdShort"="InstanceIdShort")) %>%
+  mutate(
+    HoursDiff = RIHours.x - RIHours.y,
+    CostsDiff = RICost.x - RICost.y
+  ) %>%
+  filter(
+    HoursDiff != 0 | CostsDiff != 0
+  )
+kable(diff2)
 ```
-
-### RIHoursUtilization data RI costs
-
-```{r echo=T, results='asis'}
-kable(riHoursSum)
-```
-
