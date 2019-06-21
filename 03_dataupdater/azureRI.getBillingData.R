@@ -22,10 +22,11 @@ azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL, ...) {
   usageDetails <- usageDetails %>%
     mutate( RILinkingMeterId = ifelse(
       is.na(ConsumptionMeter),
-      ifelse(
-        str_detect(Product, " Windows"),
-        NA,
-        MeterId),
+      #ifelse(
+      #  str_detect(Product, " Windows"),
+      #  NA,
+      #  MeterId),
+      NA,
       ConsumptionMeter
     ))
   
@@ -115,7 +116,10 @@ azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL, ...) {
     ) %>%
     filter(
       !is.na(RILinkingMeterId)
-    ) 
+    ) %>%
+    mutate(InstanceIdShort = basename(InstanceId)) #%>%
+    #filter(str_detect(InstanceIdShort, "-live-cluster") | str_detect(InstanceIdShort, "live-agg-cluster-search"))
+  
   
   
   # instance names by subscription and date
@@ -132,13 +136,16 @@ azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL, ...) {
       "SubscriptionName"="SubscriptionName", 
       "Date"="Date", 
       "InstanceId"="InstanceId")) %>%
-    rename(RIMeterLinkingIdFromRIUsage=RILinkingMeterId)
+    rename(RIMeterLinkingIdFromRIUsage=RILinkingMeterId) #%>%
+    #filter(str_detect(InstanceIdShort, "-live-cluster") | str_detect(InstanceIdShort, "live-agg-cluster-search"))
   
   # For every VM, there should be at least 1 row per month..
   vmDetails <- usageDetails %>%
     filter(MeterCategory == "Virtual Machines") %>%
     filter(
-      (Product != "Reservation-Base VM" & Product != "VM RI - Compute") 
+      (Product != "Reservation-Base VM" & Product != "VM RI - Compute" 
+       #& !str_detect(MeterSubCategory, " Windows")
+       ) 
     ) %>%
     group_by(InstanceId, MeterId, SubscriptionName, Product, MeterSubCategory, MeterCategory, UnitOfMeasure, PartNumber, 
              ConversionFactor, 
@@ -146,7 +153,8 @@ azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL, ...) {
     count() %>%
     select(
       -n
-    )
+    ) %>%
+    mutate(InstanceIdShort = basename(InstanceId)) 
   
   # Add date part
   vmDetails2 <- instanceNames %>% 
@@ -156,19 +164,53 @@ azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL, ...) {
                    "InstanceId"="InstanceId")) %>%
     filter(!is.na(MeterId)) %>%
     mutate(
+      #RILinkingMeterIdA = RILinkingMeterId,
+      #RILinkingMeterIdB = RIMeterLinkingIdFromRIUsage,
+      #RILinkingMeterId = ifelse(is.na(RILinkingMeterId), 
+      #                          ifelse(MeterId != RIMeterLinkingIdFromRIUsage,
+      #                                 RIMeterLinkingIdFromRIUsage,
+      #                                 NA),
+      #                          RILinkingMeterId
+      #),
+      
       RILinkingMeterId = ifelse(is.na(RILinkingMeterId), RIMeterLinkingIdFromRIUsage, RILinkingMeterId)
+      
+      
+    ) #%>%
+    #select(
+    #  -RIMeterLinkingIdFromRIUsage
+    #)
+  
+  # Now should look for any double vm per day and leave only those which have id equal id from RI.
+  vmMultipleLines <- vmDetails2 %>% group_by(SubscriptionGuid, InstanceId, Date, RILinkingMeterId) %>% count() %>% filter(n > 1) %>%
+    filter(!is.na(RILinkingMeterId)) %>%
+    select(-n)
+  
+  
+  vmMultipleLinesCorrection <- vmMultipleLines %>% left_join(y = vmDetails2, by=c(
+    "SubscriptionGuid"="SubscriptionGuid", 
+    "InstanceId"="InstanceId", 
+    "Date"="Date")) %>%
+    mutate(
+      RILinkingMeterId = ifelse(RIMeterLinkingIdFromRIUsage != MeterId, NA, MeterId)
     ) %>%
     select(
-      -RIMeterLinkingIdFromRIUsage
+      -RILinkingMeterId.x,
+      -RILinkingMeterId.y,
     )
   
+  vmDetails2 <- vmDetails2 %>% anti_join(y = vmMultipleLines, by = c( "SubscriptionGuid"="SubscriptionGuid", 
+                                "InstanceId"="InstanceId", 
+                                "Date"="Date"))
+    
+  
   # combine vm data
-  vmDetails3 <- bind_rows(vmDetails2, vmDetailsRIOnly) 
+  vmDetails3 <- bind_rows(vmDetails2, vmMultipleLinesCorrection, vmDetailsRIOnly) 
   
   # combine vmdata with usage info
   usageDetailsWithEmptyRows <- bind_rows(usageDetails, vmDetails3) %>%
     rename(ExtendedCost = Cost) %>% filter(
-      Product != "Reservation-Base VM" & Product != "VM RI - Compute" &
+      Product != "Reservation-Base VM" & Product != "VM RI - Compute" & 
         MeterCategory != "Virtual Machines Licenses" # Huh, this caused double join. 
     )
   
