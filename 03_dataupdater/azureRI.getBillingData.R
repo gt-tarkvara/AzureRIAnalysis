@@ -263,7 +263,7 @@ azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL, ...) {
       ServiceInfo2,
       ServiceName,
       ServiceType,
-      VCPUs,
+      # VCPUs,
       VMProperties
       
       
