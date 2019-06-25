@@ -6,6 +6,16 @@ azureRI.getRIHoursWithRICosts_raw <- function(apiObj, billingPeriod, ...) {
   instanceSizeFlexibility <- azureRI.get("InstanceSizeFlexibility", apiObj = apiObj, billingPeriod = billingPeriod, ...)
   
   
+  # Augment usageDetails
+  usageDetails <- usageDetails %>%
+    mutate(
+      VMName = ifelse(
+        MeterCategory == "Virtual Machines" & is.na(VMName),
+        basename(InstanceId),
+        VMName
+      )  
+    )
+  
   riHoursWithRICosts_raw <- usageDetails %>%
     select(
       -AccountName,

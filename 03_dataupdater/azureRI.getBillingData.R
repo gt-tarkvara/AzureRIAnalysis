@@ -16,20 +16,7 @@ azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL, ...) {
   priceSheet <- azureRI.get("PriceList", apiObj = apiObj, billingPeriod = billingPeriod, ...) 
   devTestMapping <- azureRI.get("DevTestMapping", apiObj = apiObj, billingPeriod = billingPeriod, ...)
   friendlyServiceNames <- azureRI.get("FriendlyServiceNames", apiObj = apiObj, billingPeriod = billingPeriod, ...)
-  
-  
-  # Augment usageDetails with Hack
-  usageDetails <- usageDetails %>%
-    mutate( RILinkingMeterId = ifelse(
-      is.na(ConsumptionMeter),
-      #ifelse(
-      #  str_detect(Product, " Windows"),
-      #  NA,
-      #  MeterId),
-      NA,
-      ConsumptionMeter
-    ))
-  
+  reservationCharges <- azureRI.get("ReservationCharges", apiObj = apiObj, billingPeriod = billingPeriod, ...)
   
   # All instance names
   instanceNamesAll <- usageDetails %>%
@@ -40,223 +27,373 @@ azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL, ...) {
       -n
     )
   
+  # check1
+  ck1 <- nrow(usageDetails)
   
-  #===========================================================
-  # Construct vmDetails for cases there are only RI usage
-  #===========================================================
-  
-  # Regular vm compute usage
-  instanceNamesWithoutRI <- usageDetails %>%
-    filter(MeterCategory == "Virtual Machines") %>%
-    filter(
-      (Product != "Reservation-Base VM" & Product != "VM RI - Compute") 
-    ) %>%
-    group_by(SubscriptionGuid, SubscriptionName, InstanceId) %>%
-    count() %>%
-    select(
-      -n
+  # Augment all Virtual Machine records to have VMName filled
+  usageDetails <- usageDetails %>%
+    mutate(
+      VMName = ifelse(
+        MeterCategory == "Virtual Machines" & is.na(VMName),
+        basename(InstanceId),
+        VMName
+      )  
     )
   
-  # Lookup subcategory data from all usage details - this information is not available in other metadata tables :(
-  meterSubCategoryLookup <- usageDetails %>% 
+  # lets get all RI usage
+  riVMinstances <- usageDetails %>%
+    filter(
+      (Product == "Reservation-Base VM" | Product == "VM RI - Compute") 
+    )
+  
+  # vm-s
+  vmInstances <- usageDetails %>%
+    filter(MeterCategory == "Virtual Machines" &
+             (Product != "Reservation-Base VM" & Product != "VM RI - Compute"))
+  
+  # remove all VM rows from usageDetails, less calculation and matching to be done.
+  usageDetails <- usageDetails %>%
+    filter(
+      MeterCategory != "Virtual Machines"
+    )
+  
+  # check 2
+  ck2 <- nrow(riVMinstances) + nrow(vmInstances) + nrow(usageDetails)
+  
+  if (ck1 != ck2) {
+    warn("Row count does not match! (usageDetails)", immediate=T)
+  }
+  
+  #check 3
+  ck3 <- nrow(vmInstances)
+  
+  # all vm-s where consumptionmeterid is not na and is different from meterid
+  vmInstancesWithDifferentConsumptionId <- vmInstances %>%
+    filter(
+      !is.na(ConsumptionMeter) 
+    ) %>%
+    filter(
+      ConsumptionMeter != MeterId
+    ) 
+  
+  # try to filter all those cases where there are multiple VM rows per day with same consumption meter
+  vmFiltered <- 
+    semi_join(
+      x = vmInstances,
+      y = vmInstancesWithDifferentConsumptionId,
+      by = c("InstanceId"="InstanceId",
+             "Date"="Date",
+             "VMName"="VMName")
+    ) %>% group_by(
+      InstanceId,
+      Date,
+      VMName
+    ) %>%
+    count() %>%
+    filter(
+      n>1
+    )
+  
+  # extract those cases to separate tibble
+  vmFilteredCases <- 
+    semi_join(
+      x=vmInstances,
+      y=vmFiltered,
+      by=c(
+        "InstanceId"="InstanceId",
+        "Date"="Date",
+        "VMName"="VMName"
+      )
+    )
+  
+  # remove filtered cases from main vmInstances
+  vmInstances <- vmInstances %>%
+    anti_join(
+      y=vmFiltered,
+      by=c(
+        "InstanceId"="InstanceId",
+        "Date"="Date",
+        "VMName"="VMName"
+      )
+    )
+  
+  # check 4
+  ck4 <- nrow(vmFilteredCases) + nrow(vmInstances)
+  
+  if (ck3 != ck4) {
+    warn("Row count does not match! (vmInstances)", immediate=T)
+  }
+  
+  # set linking RI for regular cases
+  vmInstances <- vmInstances %>%
+    mutate(
+      RILinkingId = ifelse(
+        is.na(ConsumptionMeter),
+        MeterId,
+        ConsumptionMeter
+      )
+    )
+  
+  # set linking RI for filtered cases
+  vmFilteredCases <- vmFilteredCases %>%
+    mutate(
+      RILinkingId = ConsumptionMeter
+    )
+  
+  # join vm instances back together
+  vmInstances <- bind_rows(vmInstances, vmFilteredCases)
+  
+  # check 5
+  ck5 <- nrow(vmInstances)
+  if (ck5 != ck4) {
+    warn("Row count does not match! (vmInstances + vmFilteredCases)", immediate=T)
+  }
+  
+  # Now try to construct base vm record for those cases where we have only RI row
+  
+  # First, Create some lookup tables
+  
+  # set up lookup for finding VM details
+  meterSubCategoryLookup <- vmInstances %>% 
     group_by(MeterCategory, MeterSubCategory, Product, PartNumber) %>% 
     count() %>%
     select( -n )
   
-  # filter out those instances which have only RI usage
-  instanceNamesOnlyRI <- anti_join(x=instanceNamesAll, y=instanceNamesWithoutRI, by=c("SubscriptionGuid"="SubscriptionGuid", "InstanceId"="InstanceId"))
-  
-  # construct data set
-  vmDetailsRIOnly <- left_join(x=instanceNamesOnlyRI, y=usageDetails, 
-                               by=c("SubscriptionGuid"="SubscriptionGuid", 
-                                    "SubscriptionName"="SubscriptionName", 
-                                    "InstanceId"="InstanceId")) %>%
-    filter(MeterCategory=="Virtual Machines") %>% 
-    left_join(y = priceSheet, by=c("ConsumptionMeter"="MeterId")) %>%
-    left_join(y = friendlyServiceNames, by=c("PartNumber.y"="ConsumptionPartNumber")) %>% 
-    left_join(y = meterSubCategoryLookup, by=c("PartNumber.y"="PartNumber")) %>%
+  # We have consumption meter - we can look up product by it.
+  # pricesheet without dev/test
+  priceSheetWithoutDevTest <- priceSheet %>%
+    left_join(y = friendlyServiceNames, by=c("PartNumber"="ConsumptionPartNumber", "BillingPeriod"="BillingPeriod")) %>% 
+    filter(MeterCategory == "Virtual Machines") %>%
+    rename(MeterName = Name) %>%
+    filter(!str_detect(MeterName, "Dev/Test")) %>%
+    left_join(
+      y=meterSubCategoryLookup,
+      by=c("PartNumber"="PartNumber",
+           "MeterCategory"="MeterCategory")
+    ) %>%
     mutate(
-      ConsumedUnits = 0,
-      ConversionFactor = as.numeric(ConversionFactor.y),
-      MeterId = ConsumptionMeter
+      # Data augmentation
+      MeterSubCategory =
+        ifelse(
+          is.na(MeterSubCategory),
+          str_replace(MeterName, "Virtual Machines ((.)* Series( Windows| Basic| Basic Windows)*){1} - .*", "\\1"),
+          MeterSubCategory
+        ),
+      # Data augmentation
+      Product =
+        ifelse(
+          is.na(Product),
+          MeterName,
+          Product
+        )
+    )
+  
+  
+  # Windows keys
+  priceSheetWindows <- priceSheetWithoutDevTest %>%
+    filter(str_detect(MeterName, " Series Windows ")) %>%
+    mutate(
+      MeterNameWithoutWindows = str_replace(MeterName, " Windows", "")
     ) %>%
     select(
-      SubscriptionGuid,
+      MeterNameWithoutWindows,
+      MeterNameWithWindows = MeterName,
+      MeterIdWithWindows = MeterId
+    ) %>%
+    left_join(
+      y = priceSheetWithoutDevTest,
+      by = c(
+        "MeterNameWithoutWindows" = "MeterName" 
+      )
+    ) %>%
+    select(
+      MeterNameWithoutWindows,
+      MeterNameWithWindows,
+      MeterIdWithWindows,
+      MeterIdWithoutWindows = MeterId,
+    )
+  
+  # Link lookup key back to pricesheet
+  priceSheetLookup <- priceSheetWithoutDevTest %>%
+    left_join(
+      y = priceSheetWindows,
+      by = c(
+        "MeterName" = "MeterNameWithWindows"
+      )
+    ) %>%
+    mutate(
+      LookupMeterId=ifelse(
+        is.na(MeterIdWithWindows),
+        MeterId,
+        MeterIdWithoutWindows
+      )
+    ) %>%
+    select(
+      MeterId,
+      LookupMeterId
+    )
+  
+  
+  
+  # need to find actual consumption id for those bits where name says windows but actually base vm is different
+  
+  
+  # All vm-s mentioned in RI, lets see how many have missing VM counterpart
+  riMissing <-riVMinstances %>%
+    select(
+      # - key fields
       SubscriptionName,
+      SubscriptionGuid,
       Date,
       InstanceId,
-      Cost,
-      MeterId,
-      RILinkingMeterId = ConsumptionMeter,
-      MeterCategory = MeterCategory.x,
-      MeterSubCategory = MeterSubCategory.y,
-      PartNumber = PartNumber.y,
-      Product = Name.y,
-      UnitOfMeasure = UnitsOfMeasurePriceList,
-      ConversionFactor,
-      EffectiveRate = UnitPrice,
-      ConsumedUnits
-    ) 
-  
-  #===========================================================
-  # Construct vmDetails for cases there are both VM regular 
-  # and RI usage
-  #===========================================================
-  
-  # RILinkingMeterId for RI compute metering. 
-  instanceId_Name_MeterId_Date <- usageDetails %>%
-    filter(MeterCategory == "Virtual Machines") %>%
-    filter(
-      (Product == "Reservation-Base VM" | Product == "VM RI - Compute") 
-    ) %>%
-    group_by(SubscriptionGuid, SubscriptionName, InstanceId, Date, RILinkingMeterId) %>%
-    count() %>%
-    select(
-      -n
-    ) %>%
-    filter(
-      !is.na(RILinkingMeterId)
-    ) %>%
-    mutate(InstanceIdShort = basename(InstanceId)) #%>%
-    #filter(str_detect(InstanceIdShort, "-live-cluster") | str_detect(InstanceIdShort, "live-agg-cluster-search"))
-  
-  
-  
-  # instance names by subscription and date
-  instanceNames <- usageDetails %>%
-    filter(MeterCategory == "Virtual Machines") %>%
-    group_by(SubscriptionGuid, SubscriptionName, Date, InstanceId) %>%
-    count() %>%
-    select(
-      -n
-    ) %>%
-    # Augment by RILinkingMeterId from RI meters, it is used when RILinkingMeterId for VM is empty.
-    left_join(y = instanceId_Name_MeterId_Date, by=c(
-      "SubscriptionGuid"="SubscriptionGuid", 
-      "SubscriptionName"="SubscriptionName", 
-      "Date"="Date", 
-      "InstanceId"="InstanceId")) %>%
-    rename(RIMeterLinkingIdFromRIUsage=RILinkingMeterId) #%>%
-    #filter(str_detect(InstanceIdShort, "-live-cluster") | str_detect(InstanceIdShort, "live-agg-cluster-search"))
-  
-  # For every VM, there should be at least 1 row per month..
-  vmDetails <- usageDetails %>%
-    filter(MeterCategory == "Virtual Machines") %>%
-    filter(
-      (Product != "Reservation-Base VM" & Product != "VM RI - Compute" 
-       #& !str_detect(MeterSubCategory, " Windows")
-       ) 
-    ) %>%
-    group_by(InstanceId, MeterId, SubscriptionName, Product, MeterSubCategory, MeterCategory, UnitOfMeasure, PartNumber, 
-             ConversionFactor, 
-             SubscriptionGuid, RILinkingMeterId) %>%
-    count() %>%
-    select(
-      -n
-    ) %>%
-    mutate(InstanceIdShort = basename(InstanceId)) 
-  
-  # Add date part
-  vmDetails2 <- instanceNames %>% 
-    left_join(vmDetails, 
-              by=c("SubscriptionName"="SubscriptionName",
-                   "SubscriptionGuid"="SubscriptionGuid",
-                   "InstanceId"="InstanceId")) %>%
-    filter(!is.na(MeterId)) %>%
-    mutate(
-      #RILinkingMeterIdA = RILinkingMeterId,
-      #RILinkingMeterIdB = RIMeterLinkingIdFromRIUsage,
-      #RILinkingMeterId = ifelse(is.na(RILinkingMeterId), 
-      #                          ifelse(MeterId != RIMeterLinkingIdFromRIUsage,
-      #                                 RIMeterLinkingIdFromRIUsage,
-      #                                 NA),
-      #                          RILinkingMeterId
-      #),
-      
-      RILinkingMeterId = ifelse(is.na(RILinkingMeterId), RIMeterLinkingIdFromRIUsage, RILinkingMeterId)
+      VMName,
+      ConsumptionMeter,
+      # - fields we can take over from RI
+      AccountName,
+      ResourceGroup,
+      ImageType,
+      Location,
+      OfferId,
+      ServiceInfo,
+      ServiceInfo1,
+      ServiceInfo2,
+      ServiceName,
+      ServiceType,
+      VCPUs,
+      VMProperties
       
       
-    ) #%>%
-    #select(
-    #  -RIMeterLinkingIdFromRIUsage
-    #)
-  
-  # Now should look for any double vm per day and leave only those which have id equal id from RI.
-  vmMultipleLines <- vmDetails2 %>% group_by(SubscriptionGuid, InstanceId, Date, RILinkingMeterId) %>% count() %>% filter(n > 1) %>%
-    filter(!is.na(RILinkingMeterId)) %>%
-    select(-n)
-  
-  
-  vmMultipleLinesCorrection <- vmMultipleLines %>% left_join(y = vmDetails2, by=c(
-    "SubscriptionGuid"="SubscriptionGuid", 
-    "InstanceId"="InstanceId", 
-    "Date"="Date")) %>%
-    mutate(
-      RILinkingMeterId = ifelse(RIMeterLinkingIdFromRIUsage != MeterId, NA, MeterId)
     ) %>%
-    select(
-      -RILinkingMeterId.x,
-      -RILinkingMeterId.y,
-    )
-  
-  vmDetails2 <- vmDetails2 %>% anti_join(y = vmMultipleLines, by = c( "SubscriptionGuid"="SubscriptionGuid", 
-                                "InstanceId"="InstanceId", 
-                                "Date"="Date"))
-    
-  
-  # combine vm data
-  vmDetails3 <- bind_rows(vmDetails2, vmMultipleLinesCorrection, vmDetailsRIOnly) 
-  
-  # combine vmdata with usage info
-  usageDetailsWithEmptyRows <- bind_rows(usageDetails, vmDetails3) %>%
-    rename(ExtendedCost = Cost) %>% filter(
-      Product != "Reservation-Base VM" & Product != "VM RI - Compute" & 
-        MeterCategory != "Virtual Machines Licenses" # Huh, this caused double join. 
-    )
-  
-  
-  billingData <- usageDetailsWithEmptyRows %>%
-    group_by(Date, InstanceId, MeterId, SubscriptionGuid, SubscriptionName, Product, MeterSubCategory, MeterCategory, UnitOfMeasure, PartNumber,
-             ConversionFactor, RILinkingMeterId
+    anti_join(
+      y = vmInstances,
+      by = c(
+        "SubscriptionName"="SubscriptionName",
+        "SubscriptionGuid"="SubscriptionGuid",
+        "InstanceId"="InstanceId",
+        "Date"="Date",
+        "VMName"="VMName",
+        "ConsumptionMeter"="RILinkingId"
+      )
     ) %>%
-    summarise(
-      ConsumedUnits = sum(ConsumedUnits, na.rm = T),
-      EffectiveRate = mean(EffectiveRate, na.rm = T),
-      ExtendedCost = sum(ExtendedCost, na.rm =T )
-    ) %>%
-    mutate(
-      EffectiveRate = ifelse(is.na(EffectiveRate), 0, EffectiveRate)
-    ) %>% 
-    left_join(y=riHoursWithRICosts, 
-              by=c("SubscriptionGuid"="SubscriptionGuid", "Date"="Date", "InstanceId"="InstanceId", "RILinkingMeterId"="ConsumptionMeter")) %>%
-    select(
-      -SubscriptionName.y
+    left_join(
+      y = priceSheetLookup,
+      by = c(
+        "ConsumptionMeter"="MeterId"
+      )
     ) %>%
     rename(
-      SubscriptionName = SubscriptionName.x
+      MeterId=LookupMeterId
+    ) %>%
+    left_join(
+      y = priceSheetWithoutDevTest,
+      by = c(
+        "MeterId"="MeterId"
+      )) %>%
+    # calculated fields
+    mutate(
+      ConversionFactor = as.numeric(ConversionFactor),
+      ResourceRate = UnitPrice/ConversionFactor,
+      EffectiveRate = UnitPrice,
+      Cost = 0,
+      ConsumedUnits = 0,
+      ConsumedQuantity = 0,
+      UnitOfMeasure = paste(ConversionFactor, UnitOfMeasure),
+      RILinkingId = ConsumptionMeter
+    ) %>%
+    select(
+      -UnitsOfMeasurePriceList,
+      -UnitPrice,
+      -CurrencyCode,
+      -IncludedQuantity
     )
   
   
-  billingData <- left_join(x=billingData, y=priceSheet, by=c("PartNumber"="PartNumber")) %>%
+  
+  # Join vminstances and generated instances
+  vmInstancesAll <- bind_rows(vmInstances, riMissing)
+  
+  # check 6 -  if we are missing any vm rows for RI rows?
+  ck6 <- riHoursWithRICosts %>%
+    anti_join(
+      y = vmInstancesAll,
+      by = c(
+        "SubscriptionName"="SubscriptionName",
+        "SubscriptionGuid"="SubscriptionGuid",
+        "Date"="Date",
+        "InstanceId"="InstanceId",
+        "VMName"="VMName",
+        "ConsumptionMeter"="RILinkingId"
+      )
+    )
+  
+  if (nrow(ck6) > 0) {
+    warn("STILL some unmapped RI rows", immediate=T)
+  }
+  
+  # check 7
+  ck7 <- nrow(vmInstancesAll)
+  
+  # prepare pricesheet
+  priceSheetFullLookup <- priceSheet %>%
+    select(
+      PartNumber,
+      UnitPrice
+    )
+  
+  # prepare devtest price lookup
+  devTestMappingLookup <- devTestMapping %>%
+    select(
+      DevTestPartNumber,
+      FullPrice
+    )
+  
+  # join RI rows and calculate RI savings
+  vmInstancesAll <- vmInstancesAll %>%
+    # Add unitprice
+    left_join(
+      y = priceSheetFullLookup,
+      by = c(
+        "PartNumber"="PartNumber"
+      )
+    ) %>%
+    left_join(
+      y = riHoursWithRICosts,
+      by = c(
+        "SubscriptionName"="SubscriptionName",
+        "SubscriptionGuid"="SubscriptionGuid",
+        "Date"="Date",
+        "InstanceId"="InstanceId",
+        "VMName"="VMName",
+        "RILinkingId"="ConsumptionMeter"
+      )
+    ) %>%
     mutate(
       ConsumedUnitsCoveredByRI = if_else(is.na(RIHours), 0, RIHours/ConversionFactor ),
       ConsumedUnitsCoveredByRIFullPrice = ConsumedUnitsCoveredByRI*UnitPrice,
-      CostSavingsFromRI = if_else(is.na(ConsumedUnitsCoveredByRIFullPrice-RICost),0, ConsumedUnitsCoveredByRIFullPrice-RICost)
-    ) %>%
-    rename(
-      MeterId = MeterId.x,
+      CostSavingsFromRI = if_else(is.na(ConsumedUnitsCoveredByRIFullPrice-RICost),0, ConsumedUnitsCoveredByRIFullPrice-RICost),
       CostUsageFromRI = RICost,
       RIHourRate = RIRate,
       RIHoursUsed = RIHours
     ) %>%
-    select(
-      -MeterId.y
-    )
-  
-  billingData <- left_join(x=billingData, y=devTestMapping, by=c("PartNumber"="DevTestPartNumber")) %>%
+    # DevTest savings calculation
+    left_join(
+      y=devTestMappingLookup, 
+      by=c("PartNumber"="DevTestPartNumber")) %>%
     mutate(
       DevTestConsumptionCostWithFullPrice = FullPrice*ConsumedUnits,
-      CostSavingsFromDevTest = if_else(is.na(DevTestConsumptionCostWithFullPrice),0, DevTestConsumptionCostWithFullPrice-ExtendedCost),
+      CostSavingsFromDevTest = if_else(is.na(DevTestConsumptionCostWithFullPrice),0, DevTestConsumptionCostWithFullPrice-Cost),
       CostSavingsTotal = CostSavingsFromRI + CostSavingsFromDevTest
-    )
+    ) 
+  
+  
+  # check 8
+  ck8 <- nrow(vmInstancesAll)
+  
+  if (ck7 != ck8) {
+    warn("Row count does not match! (vmInstancesAll after joining with RI data)", immediate=T)
+  }
+  
+  # Put everything back together with usageData
+  billingData <- bind_rows(usageDetails, vmInstancesAll)
+  return (billingData)
 }

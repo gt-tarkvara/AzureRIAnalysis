@@ -15,7 +15,7 @@ azureRI.getRIHoursUtilization <- function(apiObj=NULL, billingPeriod=NULL, ...) 
   riHoursWithRICosts_raw <- azureRI.get("RIHoursWithRICosts_raw", apiObj = apiObj, billingPeriod = billingPeriod, ...)  
   
   riHoursUtilization <- riHoursWithRICosts_raw %>%  
-    group_by(InstanceId, Date, SubscriptionGuid, SubscriptionName, ConsumptionMeter, ReservationOrderId, RealArmSkuName) %>%
+    group_by(InstanceId, Date, SubscriptionGuid, SubscriptionName, ConsumptionMeter, ReservationOrderId, RealArmSkuName, VMName) %>%
     summarise(
       RIHours=sum(ConsumedQuantity, na.rm = T), 
       RIRate=mean(UsedRIRate,na.rm = T), 
@@ -38,6 +38,7 @@ azureRI.getRIHoursUtilization <- function(apiObj=NULL, billingPeriod=NULL, ...) 
       ,ConsumptionMeter
       ,Date
       ,InstanceId
+      ,VMName
       ,PurchasingSubscriptionName
       ,Quantity
       ,ReservationOrderId

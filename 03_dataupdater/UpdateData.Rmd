@@ -78,7 +78,7 @@ kable(diff)
 bdSum2 <- billingData %>% 
   filter(MeterCategory == "Virtual Machines") %>%
   mutate(InstanceIdShort = basename(InstanceId)) %>%
-  group_by(SubscriptionName, InstanceIdShort) %>% 
+  group_by(SubscriptionName, InstanceIdShort, VMName, Date) %>% 
   summarize(
     RIHours = sum(RIHoursUsed, na.rm = T),
     RICost = sum(CostUsageFromRI, na.rm = T),
@@ -86,7 +86,7 @@ bdSum2 <- billingData %>%
 
 riHoursSum2 <- riHoursWithRICosts %>%
   mutate(InstanceIdShort = basename(InstanceId)) %>%
-  group_by(SubscriptionName, InstanceIdShort) %>% 
+  group_by(SubscriptionName, InstanceIdShort, VMName, Date) %>% 
   summarize(
     RIHours = sum(RIHours, na.rm = T),
     RICost = sum(RICost, na.rm = T),
@@ -95,7 +95,11 @@ riHoursSum2 <- riHoursWithRICosts %>%
 
 #Diff2
 diff2 <- bdSum2 %>% full_join(y = riHoursSum2, 
-                            by=c("SubscriptionName"="SubscriptionName", "InstanceIdShort"="InstanceIdShort")) %>%
+                            by=c("SubscriptionName"="SubscriptionName", 
+                                 "InstanceIdShort"="InstanceIdShort",
+                                 "VMName"="VMName",
+                                 "Date"="Date"
+                                 )) %>%
   mutate(
     HoursDiff = RIHours.x - RIHours.y,
     CostsDiff = RICost.x - RICost.y
