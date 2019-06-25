@@ -45,14 +45,14 @@ source("azureRI.R")
 ## Data load
 ```{r echo=T, results='markup'}
 
-priceSheet <- azureRI.get("PriceList", azureRI.default, row.names = "BusinessKey") 
-friendlyServiceNames <- azureRI.get("FriendlyServiceNames", azureRI.default, row.names = "BusinessKey")
-instanceSizeFlexibility <- azureRI.get("InstanceSizeFlexibility", azureRI.default, row.names = "BusinessKey")
+priceSheet <- azureRI.get("PriceList", azureRI.default, row.names = "BusinessKey", billingPeriod = billingPeriod) 
+friendlyServiceNames <- azureRI.get("FriendlyServiceNames", azureRI.default, row.names = "BusinessKey", billingPeriod = billingPeriod )
+instanceSizeFlexibility <- azureRI.get("InstanceSizeFlexibility", azureRI.default, row.names = "BusinessKey", billingPeriod = billingPeriod)
 
 
-billingData <- azureRI.get(what="BillingData", apiObj = azureRI.default, row.names = "BusinessKey", reload=T)
-riHoursUtilization <- azureRI.get(what="RIHoursUtilization", apiObj = azureRI.default, row.names = "BusinessKey", reload=T)
-riHoursWithRICosts <- azureRI.get("RIHoursWithRICosts", reload=T) 
+billingData <- azureRI.get(what="BillingData", apiObj = azureRI.default, row.names = "BusinessKey", billingPeriod = billingPeriod, reload=T)
+riHoursUtilization <- azureRI.get(what="RIHoursUtilization", apiObj = azureRI.default, row.names = "BusinessKey", billingPeriod = billingPeriod, reload=T)
+riHoursWithRICosts <- azureRI.get("RIHoursWithRICosts", billingPeriod = billingPeriod, reload=T) 
 billingData
 riHoursUtilization
 ```
