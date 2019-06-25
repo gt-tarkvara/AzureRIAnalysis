@@ -305,7 +305,10 @@ azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL, ...) {
       -UnitPrice,
       -CurrencyCode,
       -IncludedQuantity
-    )
+    ) %>%
+    # Required because RI rows can come from different ReservationCharges and thus per (meterId,InstanceId, VMName, Date) key 
+    # there might be multiple RI rows, one for each reservationcharge RI was applied from
+    unique() 
   
   
   
