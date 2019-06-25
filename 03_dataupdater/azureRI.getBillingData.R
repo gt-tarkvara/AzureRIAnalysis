@@ -453,7 +453,7 @@ azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL, ...) {
       ,UnitOfMeasure
       #,UsageResource
       #,UsageType
-      ,VCPUs
+      #,VCPUs # sometimes filled, sometimes not - causes duplicates
       ,VMName
       #,VMProperties
     ) %>%
