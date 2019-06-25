@@ -477,6 +477,14 @@ azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL, ...) {
       ,RIRate = mean(RIRate, na.rm = T)
       ,UnitPrice = mean(UnitPrice, na.rm = T)
       ,ResourceRate= mean(ResourceRate, na.rm = T)
+    ) %>%
+    mutate(
+      EffectiveRate = ifelse(is.nan(EffectiveRate), NA, EffectiveRate),
+      FullPrice = ifelse(is.nan(FullPrice), NA, FullPrice),
+      RIHourRate = ifelse(is.nan(RIHourRate), NA, RIHourRate),
+      RIRate = ifelse(is.nan(RIRate), NA, RIRate),
+      UnitPrice = ifelse(is.nan(UnitPrice), NA, UnitPrice),
+      ResourceRate = ifelse(is.nan(ResourceRate), NA, ResourceRate)
     )
   
     return (billingData2)

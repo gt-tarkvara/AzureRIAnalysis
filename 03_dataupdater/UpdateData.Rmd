@@ -45,9 +45,9 @@ source("azureRI.R")
 ## Data load
 ```{r echo=T, results='markup'}
 
-priceSheet <- azureRI.get("PriceList", azureRI.default, row.names = "BusinessKey", reload=T) 
-friendlyServiceNames <- azureRI.get("FriendlyServiceNames", azureRI.default, row.names = "BusinessKey", reload=T)
-instanceSizeFlexibility <- azureRI.get("InstanceSizeFlexibility", azureRI.default, row.names = "BusinessKey", reload=T)
+priceSheet <- azureRI.get("PriceList", azureRI.default, row.names = "BusinessKey") 
+friendlyServiceNames <- azureRI.get("FriendlyServiceNames", azureRI.default, row.names = "BusinessKey")
+instanceSizeFlexibility <- azureRI.get("InstanceSizeFlexibility", azureRI.default, row.names = "BusinessKey")
 
 
 billingData <- azureRI.get(what="BillingData", apiObj = azureRI.default, row.names = "BusinessKey", reload=T)
