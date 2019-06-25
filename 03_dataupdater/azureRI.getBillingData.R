@@ -231,6 +231,10 @@ azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL, ...) {
     select(
       MeterId,
       LookupMeterId
+    ) %>%
+    mutate(
+      MeterId = as.character(MeterId),
+      LookupMeterId = as.character(LookupMeterId)
     )
   
   
@@ -374,9 +378,9 @@ azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL, ...) {
       ConsumedUnitsCoveredByRI = if_else(is.na(RIHours), 0, RIHours/ConversionFactor ),
       ConsumedUnitsCoveredByRIFullPrice = ConsumedUnitsCoveredByRI*UnitPrice,
       CostSavingsFromRI = if_else(is.na(ConsumedUnitsCoveredByRIFullPrice-RICost),0, ConsumedUnitsCoveredByRIFullPrice-RICost),
-      CostUsageFromRI = RICost,
-      RIHourRate = RIRate,
-      RIHoursUsed = RIHours
+      CostUsageFromRI = ifelse(is.na(RICost),0,RICost),
+      RIHourRate = ifelse(is.na(RIRate),0,RIRate),
+      RIHoursUsed = ifelse(is.na(RIHours),0,RIHours)
     ) %>%
     # DevTest savings calculation
     left_join(
@@ -398,5 +402,82 @@ azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL, ...) {
   
   # Put everything back together with usageData
   billingData <- bind_rows(usageDetails, vmInstancesAll)
-  return (billingData)
+  
+  #return (billingData)
+  
+  # have to add groupby because some data is truly on multiple lines, thus foiling unique key attempts.
+  billingData2 <- billingData %>%
+    group_by(
+      AccountName
+      #,AppServicePlanUri
+      ,BillingPeriod
+      #,ChargesBilledSeparately
+      #,ConsumedService
+      #,ConsumptionMeter
+      #,ConversionFactor
+      ,Date
+      #,DeploymentLabel
+      ,EnterpriseUnits
+      #,HostedServiceLabel
+      #,ImageType # here is sometimes information if image has byol or not
+      #,InfoField
+      ,InstanceId
+      ,Location
+      ,MeterCategory
+      #,MeteredService
+      #,MeteredServiceType
+      ,MeterId
+      ,MeterName
+      #,MeterRegion
+      ,MeterSubCategory
+      ,Name
+      ,OfferId
+      ,PartNumber
+      ,Product
+      ,ReportedUnits
+      #,ReservationId
+      #,ReservationOrderId
+      ,ResourceGroup
+      #,ResourceGuid
+      
+      #,RILinkingId
+      #,ServiceInfo
+      #,ServiceInfo1
+      #,ServiceInfo2 # here is sometimes information if image has byod license or  not
+      ,ServiceName
+      ,ServiceTier
+      ,ServiceType
+      ,SubscriptionGuid
+      ,SubscriptionName
+      #,Tags
+      ,UnitOfMeasure
+      #,UsageResource
+      #,UsageType
+      ,VCPUs
+      ,VMName
+      #,VMProperties
+    ) %>%
+    summarize(
+      EffectiveRate = mean(EffectiveRate, na.rm = T)
+      ,ConsumedQuantity = sum(ConsumedQuantity, na.rm = T)
+      ,ConsumedUnits = sum(ConsumedUnits, na.rm = T)
+      ,ConsumedUnitsCoveredByRI = sum(ConsumedUnitsCoveredByRI, na.rm = T)
+      ,ConsumedUnitsCoveredByRIFullPrice = sum(ConsumedUnitsCoveredByRIFullPrice, na.rm = T)
+      ,Cost = sum(Cost, na.rm = T)
+      ,DevTestConsumptionCostWithFullPrice = sum(DevTestConsumptionCostWithFullPrice, na.rm = T)
+      ,CostSavingsFromDevTest = sum(CostSavingsFromDevTest, na.rm = T)
+      ,CostSavingsFromRI = sum(CostSavingsFromRI, na.rm = T)
+      ,CostSavingsTotal = sum(CostSavingsTotal, na.rm = T)
+      ,CostUsageFromRI = sum(CostUsageFromRI, na.rm = T)
+      ,FullPrice = mean(FullPrice, na.rm = T)
+      ,RICost = sum(RICost, na.rm = T)
+      ,RIHourRate = mean(RIHourRate, na.rm = T)
+      ,RIHours = sum(RIHours, na.rm = T)
+      ,RIHoursUsed = sum(RIHoursUsed, na.rm = T)
+      ,RIRate = mean(RIRate, na.rm = T)
+      ,UnitPrice = mean(UnitPrice, na.rm = T)
+      ,ResourceRate= mean(ResourceRate, na.rm = T)
+    )
+  
+    return (billingData2)
 }
