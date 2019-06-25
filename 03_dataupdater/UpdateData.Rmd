@@ -137,9 +137,9 @@ kable(diff2)
 #riHoursUtilization <- azureRI.get(what="RIHoursUtilization", apiObj = azureRI.default, row.names = "BusinessKey", reload=T)  
 
 azureRI.set(what="PriceList", apiObj = azureRI.default, data = priceSheet, billingPeriod = billingPeriod)
-azureRI.set(what="FriendlyServiceNames", apiObj = azureRI.default, data = friendlyServiceNames, billingPeriod = billingPeriod)
-azureRI.set(what="InstanceSizeFlexibility", apiObj = azureRI.default, data = instanceSizeFlexibility, billingPeriod = billingPeriod)
-azureRI.set(what="BillingData", apiObj = azureRI.default, data = billingData, billingPeriod = billingPeriod)
-azureRI.set(what="RIHoursUtilization", apiObj = azureRI.default, data = riHoursUtilization, billingPeriod = billingPeriod)
+#azureRI.set(what="FriendlyServiceNames", apiObj = azureRI.default, data = friendlyServiceNames, billingPeriod = billingPeriod)
+#azureRI.set(what="InstanceSizeFlexibility", apiObj = azureRI.default, data = instanceSizeFlexibility, billingPeriod = billingPeriod)
+#azureRI.set(what="BillingData", apiObj = azureRI.default, data = billingData, billingPeriod = billingPeriod)
+#azureRI.set(what="RIHoursUtilization", apiObj = azureRI.default, data = riHoursUtilization, billingPeriod = billingPeriod)
 
 ```

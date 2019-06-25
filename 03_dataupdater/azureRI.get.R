@@ -79,7 +79,7 @@ azureRI.get <- function(what, apiObj=NULL, billingPeriod = NULL, reload = FALSE,
                               dbQuoteString(apiObj$con, billingPeriod))
          warning(paste0("Executing ", sql))
          ret <- dbGetQuery(apiObj$con, sql) %>% as.tibble() %>% select(-!!row.names) 
-         if (length(ret) == 0) {
+         if (nrow(ret) == 0) {
            ret <- do.call(fname, list(apiObj=apiObj, billingPeriod=billingPeriod, ... ))
          }
          
