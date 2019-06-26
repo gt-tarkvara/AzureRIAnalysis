@@ -3,3 +3,4 @@
 /03_dataupdater/kitematic
 /03_dataupdater/.RData
 /03_dataupdater/devInit.R
+/*.env
