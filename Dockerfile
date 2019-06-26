@@ -18,4 +18,8 @@ COPY 03_dataupdater/run.sh /home/docker/
 
 RUN chown docker:docker /home/docker -R
 
+USER docker:docker
 
+WORKDIR /home/docker
+
+CMD ["/bin/bash", "run.sh"]

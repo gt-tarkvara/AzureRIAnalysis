@@ -11,23 +11,23 @@ case $RUNMODE in
 
   ALL)
     echo "Updating all"
-	Rscript all.aux.R || exit 1
+	exec Rscript all.aux.R || exit 1
     ;;
 
   AUX)
     echo "Updating auxiliarity tables only"
-	Rscript run.aux.R || exit 1
+	exec Rscript run.aux.R || exit 1
     ;;
 
   USAGE)
     echo "Updating billingdata and RIUtilization tables only"
-	Rscript run.usage.R || exit 1
+	exec Rscript run.usage.R || exit 1
     ;;
 
   ALL_WITH_REPORT)
     echo "Updating all with HTML report"
 	REPORTNAME=report-$(date +%s).html
-	Rscript -e "library(rmarkdown); rmarkdown::render(\"UpdateData.Rmd\", output_file=\"$REPORTNAME\")"	|| exit 1
+	exec Rscript -e "library(rmarkdown); rmarkdown::render(\"UpdateData.Rmd\", output_file=\"$REPORTNAME\")"	|| exit 1
 	
 	# send report to azure storage
 	if [ ! -z "$AZURERI_STORAGEACCOUNT" ] && [ ! -z "$AZURERI_STORAGECONTAINER" ] && [ ! -z "$AZURERI_SASTOKEN" ]; then
