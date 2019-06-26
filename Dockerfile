@@ -12,4 +12,6 @@ COPY 03_dataupdater/azureRI.get* /home/docker/
 COPY 03_dataupdater/azureRI.set* /home/docker/
 COPY 03_dataupdater/azureRI.Call* /home/docker/
 COPY 03_dataupdater/azureRI.R /home/docker/
+COPY 03_dataupdater/run.*.R /home/docker/
 COPY 03_dataupdater/UpdateData.Rmd /home/docker/
+COPY 03_dataupdater/run.sh /home/docker/
