@@ -20,6 +20,10 @@ list <- as.list(env[grep("^AZURERI_", names(env))])
 # replace sensitive values
 list$AZURERI_BEARER <- paste0(substring(list$AZURERI_BEARER, 1, 10), '.. ..', substring(list$AZURERI_BEARER, first=nchar(list$AZURERI_BEARER)-10))
 
+if (!is.null(foo[["AZURERI_SASTOKEN"]])) {
+  list$AZURERI_SASTOKEN <- paste0(substring(list$AZURERI_BEARER, 1, 10), '.. ..', substring(list$AZURERI_BEARER, first=nchar(list$AZURERI_BEARER)-10))
+}
+
 list$AZURERI_CONNECTIONSTRING <- 
   str_replace(
     str_replace(list$AZURERI_CONNECTIONSTRING, "Uid=([^;]){1}([^;]*){0,1};", "Uid=\\1*******;"),
