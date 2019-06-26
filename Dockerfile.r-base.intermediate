@@ -1,7 +1,8 @@
 # docker build -t herrbpl/r-base-tidyverse -f Dockerfile.r-base.intermediate .
 # Base image https://hub.docker.com/_/r-base
 # FROM rocker/r-base:latest
-FROM r-base:latest
+# FROM herrbpl/r-base:latest
+FROM rocker/r-ver
 
 ## install debian packages
 RUN apt-get update -qq && apt-get -y --no-install-recommends install \
@@ -16,7 +17,8 @@ libcurl4-openssl-dev \
 libssl-dev \
 unixodbc \
 tdsodbc \
-odbc-postgresql
+odbc-postgresql \
+wget
 
 RUN cd /tmp && wget https://packages.microsoft.com/debian/9/prod/pool/main/m/msodbcsql17/msodbcsql17_17.3.1.1-1_amd64.deb && echo yes|dpkg -i /tmp/msodbcsql17_17.3.1.1-1_amd64.deb
 
@@ -32,3 +34,5 @@ COPY 02_code/install_packages.R /install_packages.R
 
 ## install R-packages
 RUN Rscript /install_packages.R
+
+
