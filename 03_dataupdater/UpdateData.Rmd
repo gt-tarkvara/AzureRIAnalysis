@@ -53,8 +53,8 @@ instanceSizeFlexibility <- azureRI.get("InstanceSizeFlexibility", azureRI.defaul
 billingData <- azureRI.get(what="BillingData", apiObj = azureRI.default, row.names = "BusinessKey", billingPeriod = billingPeriod, reload=T)
 riHoursUtilization <- azureRI.get(what="RIHoursUtilization", apiObj = azureRI.default, row.names = "BusinessKey", billingPeriod = billingPeriod, reload=T)
 riHoursWithRICosts <- azureRI.get("RIHoursWithRICosts", billingPeriod = billingPeriod, reload=T) 
-billingData
-riHoursUtilization
+#billingData
+#riHoursUtilization
 ```
 ## Basic RI Cost checks
 ```{r echo=T, results='asis'}
