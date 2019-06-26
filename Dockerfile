@@ -15,3 +15,7 @@ COPY 03_dataupdater/azureRI.R /home/docker/
 COPY 03_dataupdater/run.*.R /home/docker/
 COPY 03_dataupdater/UpdateData.Rmd /home/docker/
 COPY 03_dataupdater/run.sh /home/docker/
+
+RUN chown docker:docker /home/docker -R
+
+
