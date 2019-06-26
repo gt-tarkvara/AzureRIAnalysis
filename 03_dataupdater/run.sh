@@ -11,23 +11,23 @@ case $RUNMODE in
 
   ALL)
     echo "Updating all"
-	exec Rscript all.aux.R
+	Rscript all.aux.R || exit 1
     ;;
 
   AUX)
     echo "Updating auxiliarity tables only"
-	exec Rscript run.aux.R
+	Rscript run.aux.R || exit 1
     ;;
 
   USAGE)
     echo "Updating billingdata and RIUtilization tables only"
-	exec Rscript run.usage.R
+	Rscript run.usage.R || exit 1
     ;;
 
   ALL_WITH_REPORT)
     echo "Updating all with HTML report"
 	REPORTNAME=report-$(date +%s).html
-	exec Rscript -e "library(rmarkdown); rmarkdown::render(\"UpdateData.Rmd\", output_file=\"$REPORTNAME\")"
+	Rscript -e "library(rmarkdown); rmarkdown::render(\"UpdateData.Rmd\", output_file=\"$REPORTNAME\")" || exit 1
 	
 	echo "Done"
 	# send report to azure storage
