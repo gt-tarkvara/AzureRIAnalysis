@@ -16,7 +16,10 @@ COPY 03_dataupdater/run.*.R /home/docker/
 COPY 03_dataupdater/UpdateData.Rmd /home/docker/
 COPY 03_dataupdater/run.sh /home/docker/
 
+RUN mkdir -p /data/cache
+
 RUN chown docker:docker /home/docker -R
+RUN chown docker:docker /data/cache -R
 
 USER docker:docker
 

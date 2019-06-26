@@ -20,7 +20,7 @@ list <- as.list(env[grep("^AZURERI_", names(env))])
 # replace sensitive values
 list$AZURERI_BEARER <- paste0(substring(list$AZURERI_BEARER, 1, 10), '.. ..', substring(list$AZURERI_BEARER, first=nchar(list$AZURERI_BEARER)-10))
 
-if (!is.null(foo[["AZURERI_SASTOKEN"]])) {
+if (!is.null(list[["AZURERI_SASTOKEN"]])) {
   list$AZURERI_SASTOKEN <- paste0(substring(list$AZURERI_BEARER, 1, 10), '.. ..', substring(list$AZURERI_BEARER, first=nchar(list$AZURERI_BEARER)-10))
 }
 
