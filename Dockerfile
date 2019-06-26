@@ -1,6 +1,9 @@
 # docker build -t herrbpl/azureri-etl -f Dockerfile .
 FROM herrbpl/r-base-tidyverse:latest
 
+# Temporary
+RUN apt-get update -qq && apt-get -y --no-install-recommends install curl pandoc
+
 ## add docker user
 RUN groupadd -g 1000 docker
 RUN useradd -d /home/docker -g 1000 -u 1000 docker
