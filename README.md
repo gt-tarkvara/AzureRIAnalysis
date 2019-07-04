@@ -34,6 +34,25 @@ head(billingData)
 ## To run container
 
 ```bash
-docker run  --env-file .\dev.env -it --rm -v /tmp/ricache:/data/cache  -w /home/docker -u docker  herrbpl/azureri-etl
+docker run  --env-file .\dev.env -it --rm -v /tmp/ricache:/data/cache  -w /home/docker -u docker -e AZURERI_RUNMODE=ALL_WITH_REPORT herrbpl/azureri-etl
 ```
 dev.env in example is file containing environment variables
+
+Mapping cache dir is optional but when mapped, location must be writable to user under which command is executed. By default, this is docker (uid:1000).
+
+
+## To build a container
+
+Layered approach is used
+1. Base container (herrbpl/r-base-tidyverse) with tidyverse is built from rocker/r-ver image - this image build takes some time
+2. Azure RI information ETL container (herrbpl/azureri-etl) is build based on herrbpl/r-base-tidyverse - just includes actual ETL scripts and some user-specific settings to run in docker context, rather than root
+
+To build base container run buildRBaseImmediate.cmd or
+```bash
+docker build -t herrbpl/r-base-tidyverse -f Dockerfile.r-base.intermediate .
+```
+To build ETL container run
+```bash
+ docker build -t herrbpl/azureri-etl -f Dockerfile .
+```
+
