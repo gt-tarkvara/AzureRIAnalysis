@@ -49,5 +49,8 @@ azureRI.getRIHoursUtilization <- function(apiObj=NULL, billingPeriod=NULL, ...) 
       ,SubscriptionName
       ,TotalHoursAvailable
       ,TotalRICommitmentAvailable
+    ) %>%
+    filter(
+      !is.na(RealArmSkuName)
     )
 }

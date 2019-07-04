@@ -44,6 +44,9 @@ azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL, ...) {
   riVMinstances <- usageDetails %>%
     filter(
       (Product == "Reservation-Base VM" | Product == "VM RI - Compute") 
+    ) %>%
+    filter(
+      !is.na(ConsumptionMeter) # sometimes missing, should actually report as anomaly
     )
   
   # vm-s
@@ -123,6 +126,7 @@ azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL, ...) {
   if (ck3 != ck4) {
     warn("Row count does not match! (vmInstances)", immediate=T)
   }
+  
   
   # set linking RI for regular cases
   vmInstances <- vmInstances %>%
@@ -371,7 +375,8 @@ azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL, ...) {
         "Date"="Date",
         "InstanceId"="InstanceId",
         "VMName"="VMName",
-        "RILinkingId"="ConsumptionMeter"
+        "RILinkingId"="ConsumptionMeter",
+        "ServiceType"="RealArmSkuName"
       )
     ) %>%
     mutate(

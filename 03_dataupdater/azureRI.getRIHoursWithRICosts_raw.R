@@ -41,6 +41,9 @@ azureRI.getRIHoursWithRICosts_raw <- function(apiObj, billingPeriod, ...) {
     filter(
       Product == "Reservation-Base VM" | Product == "VM RI - Compute" 
     ) %>%
+    filter(
+      !is.na(ConsumptionMeter) # sometimes missing. I think should report this also as anomaly..
+    ) %>%
     rename(
       RealArmSkuName = ServiceType 
     )
