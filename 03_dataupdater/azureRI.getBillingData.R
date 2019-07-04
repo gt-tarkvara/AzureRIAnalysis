@@ -446,7 +446,7 @@ azureRI.getBillingData <- function(apiObj=NULL, billingPeriod=NULL, ...) {
       #,ServiceInfo2 # here is sometimes information if image has byod license or  not
       ,ServiceName
       ,ServiceTier
-      ,ServiceType
+      #,ServiceType # sometimes filled, sometimes not - causes unique key generation to fail
       ,SubscriptionGuid
       ,SubscriptionName
       #,Tags
