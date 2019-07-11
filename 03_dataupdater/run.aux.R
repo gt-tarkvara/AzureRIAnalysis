@@ -2,7 +2,7 @@ source('azureRI.R')
 
 billingPeriod <- Sys.getenv("AZURERI_BILLINGPERIOD")
 
-if (is.null(billingPeriod)) {
+if (is.null(billingPeriod) | str_trim(billingPeriod)  == '' ) {
   billingPeriod <- format(as.Date(format(Sys.Date(), "%Y-%m-01")) - 1, "%Y%m")
 }
 
