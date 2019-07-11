@@ -9,9 +9,20 @@ fi
 
 case $RUNMODE in
 
+  DEBUG)
+	echo "DEBUG MODE"
+	whoami
+	id
+	pwd
+	ls -la
+    echo "Starting debug loop"
+	while true; do date; sleep 5; done
+	exit 0
+	;;
+
   ALL)
     echo "Updating all"
-	Rscript all.aux.R || exit 1
+	Rscript run.aux.R || exit 1
     ;;
 
   AUX)
